@@ -55,4 +55,3 @@ class ReferenceGraph:
 			self.nt_ref[line_before_split[0]]={}
 			for i2 in range(0, len(kmer_around_snp)):
 				self.nt_ref[line_before_split[0]][start_position+i2]=kmer_around_ref[i2]
-
