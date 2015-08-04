@@ -16,7 +16,7 @@ logger = init_logger('SEQLIB')
 logger.info("Setting up SEQLIB")
 
 # TO CHANGE !!!!!
-experiment_name = "TP53"
+experiment_name = "FLT3"
 
 def build_read_library(FASTQFILE_PATH):
 	read_library = collections.defaultdict(list)

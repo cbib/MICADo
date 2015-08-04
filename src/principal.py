@@ -16,8 +16,6 @@ logger.info("Will import")
 from reference_graph import ReferenceGraph as RG
 import visualization as VISU
 from patient_graph import PatientGraph as PG
-# from randomreadsgraph import RandomReadsGraph as RRG
-import forannotation as ANNO
 
 logger.info("Import finished")
 
@@ -25,6 +23,7 @@ def process_sample(kmer_length, min_support_percentage,  n_permutations, sample_
 
 	if experiment_name == "TP53":
 		from randomreadsgraph_TP53 import RandomReadsGraph as RRG
+		import forannotation as ANNO
 	else: 
 		from randomreadsgraph import RandomReadsGraph as RRG
 
@@ -161,7 +160,20 @@ def process_sample(kmer_length, min_support_percentage,  n_permutations, sample_
 		nx.write_gml(g_patient_clean_merged_visu, destination_directory + "/" + merged_cleaned_graph_name + str(kmer_length) + ".gml")
 		
 	# Annotation
-	ANNO.alteration_list_to_transcrit_mutation(g_patient,g_reference)
+	if experiment_name == "TP53":
+		ANNO.alteration_list_to_transcrit_mutation(g_patient,g_reference)
+
+	# SNP 
+	dir_stat = get_or_create_dir("output/snp") 
+	# graph stat
+	graph_snp = open(dir_stat+"/snp_"+sample_key+".tsv", 'w')
+	for snp_id in g_reference.snp.keys():
+		if g_reference.snp[snp_id][1] in g_patient.dbgclean:
+			if g_reference.snp[snp_id][0] in g_patient.dbgclean:				
+				graph_snp.write("%s\t%s\t%d\t%d\n"%(sample_key,snp_id,len(g_patient.dbg.node[g_reference.snp[snp_id][0]]['read_list_n']),len(g_patient.dbg.node[g_reference.snp[snp_id][1]]['read_list_n'])))
+			else:
+				graph_snp.write("%s\t%s\t0\t%d\n"%(sample_key,snp_id,len(g_patient.dbg.node[g_reference.snp[snp_id][1]]['read_list_n'])))
+
 
 if __name__ == "__main__":
 	parser = ArgumentParser()

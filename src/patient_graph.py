@@ -212,3 +212,5 @@ class PatientGraph:
 		for alteration in set(to_remove):
 			self.significant_alteration_list.remove(alteration)
 
+		
+

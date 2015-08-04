@@ -12,6 +12,7 @@ class ReferenceGraph:
 	def __init__(self,kmer_length,fasta_file,snp_file):
 		self.dbg = nx.DiGraph()
 		self.nt_ref = {}
+		self.snp = {}
 		# Reference
 		for record in SeqIO.parse(fasta_file, "fasta", generic_dna):
 			startposition = int(record.description.split("\t")[1]) + 1
@@ -55,3 +56,4 @@ class ReferenceGraph:
 			self.nt_ref[line_before_split[0]]={}
 			for i2 in range(0, len(kmer_around_snp)):
 				self.nt_ref[line_before_split[0]][start_position+i2]=kmer_around_ref[i2]
+			self.snp[line_before_split[0]] = [line_split[0][len(line_split[0])-kmer_length+1:len(line_split[0])]+line_split[1].split("|")[0],line_split[0][len(line_split[0])-kmer_length+1:len(line_split[0])]+line_split[1].split("|")[1]]
