@@ -58,7 +58,7 @@ def process_sample(kmer_length, min_support_percentage,  n_permutations, sample_
 	# graph stat
 	graph_stat_file = open(dir_stat+"/graph_stat_file"+sample_key+".tsv", 'w')
 	graph_stat_file.write(
-		"%d\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d"%(
+		"%d\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n"%(
 		kmer_length,
 		g_reference.dbg.size(),
 		sample_key,
