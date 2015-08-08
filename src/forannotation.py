@@ -47,9 +47,15 @@ def alteration_list_to_transcrit_mutation(g_test,g_ref):
 			position = g_ref.dbg.node[g_test.significant_alteration_list[i_alteration].reference_path[0]]['ref_list'][splicing_variant]+compact_cigard[0]
 			if re.match("rs",splicing_variant):
 				reference = ""
+				print splicing_variant
+				print compact_cigard
+				print g_ref.nt_ref[splicing_variant]
 				for i_pos in range(0,compact_cigard[2]):
-					reference += g_ref.nt_ref[splicing_variant][position+i_pos]
-					splicing_variant = "NM_000546.5"
+					if position+i_pos not in g_ref.nt_ref[splicing_variant]:
+						logger.critical("%d not in nt_ref dict of %s",position+i_pos,splicing_variant)
+						continue
+				 	reference += g_ref.nt_ref[splicing_variant][position+i_pos]
+				splicing_variant = "NM_000546.5"
 			else:
 				reference = g_test.significant_alteration_list[i_alteration].reference_sequence[compact_cigard[0]:compact_cigard[0]+compact_cigard[2]]			
 			if alteration_type == "X":
