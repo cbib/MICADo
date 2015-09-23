@@ -51,7 +51,7 @@ def process_sample(kmer_length, min_support_percentage,  n_permutations, sample_
 			logger.info("There are always cycle(s) with k==50...exiting")
 			sys.exit(0)
 		# Check non depassement valeur limite de k 
-		return process_sample(kmer_length=kmer_length+1,sample_key=sample_key,fastq_files=fastq_files,fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name, min_support_percentage=min_support_percentage, n_permutations=n_permutations, destination_directory=destination_directory, export_gml=export_gml)
+		return process_sample(kmer_length=kmer_length+1,sample_key=sample_key,fastq_files=",".join(fastq_files),fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name, min_support_percentage=min_support_percentage, n_permutations=n_permutations, destination_directory=destination_directory, export_gml=export_gml)
 
 	# Some prints for stats 
 	dir_stat = get_or_create_dir("output/statistics") 
@@ -115,7 +115,7 @@ def process_sample(kmer_length, min_support_percentage,  n_permutations, sample_
 	 	g_patient.multiple_alternative_path_filter()
 
 	## Stat 
-	# graph stat
+	# alteration stat
 	alt_stat_file = open(dir_stat+"/alt_stat_file"+sample_key+".tsv", 'w')
 	for i_alteration in range(0, len(g_patient.alteration_list)):
 		if g_patient.alteration_list[i_alteration].pvalue_ratio <= 1:			

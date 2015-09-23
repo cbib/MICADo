@@ -4,7 +4,7 @@ rule process_sample:
 	log: "output/logs/{SAMPLE}.txt"
 	shell:
 		"""
-			python src/principal.py --samplekey {wildcards.SAMPLE} --fastq {input.c_term},{input.n_term} --fasta data/reference/reference_TP53.fasta --snp data/reference/snp_TP53.tab  --kmer_length 20 --npermutations 10000 --experiment TP53 > {output} 2> {log}
+			python src/principal.py --samplekey {wildcards.SAMPLE} --fastq {input.c_term},{input.n_term} --fasta data/reference/reference_TP53.fasta --snp data/reference/snp_TP53.tab  --kmer_length 20 --npermutations 10000 --experiment TP53 --min_support_percentage 4 > {output} 2> {log}
 		"""
 
 sam2test = open("data/pool0_samples2analyse.txt",'r').readlines()

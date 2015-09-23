@@ -121,7 +121,8 @@ class PatientGraph:
 					reference_path = ""
 					for i_path in nx.all_simple_paths(G_ref, node_start, node_end):
 						reference_path_list.append(i_path)
-					# if there is no reference path, check predecessors/successors of start/end nodes of the path (just +1 at this moment)
+
+					#if there is no reference path, check predecessors/successors of start/end nodes of the path (just +1 at this moment)
 					if len(reference_path_list) == 0:
 						reference_path_list_successor = [] 
 						reference_path_list_predecessor = [] 
@@ -133,7 +134,6 @@ class PatientGraph:
 								alternative_path.append(successor)
 								node_end = successor
 								reference_path_list = reference_path_list_successor
-								break
 						for predecessor in G_ref.predecessors(node_start):
 							for i_path_predecessor in nx.all_simple_paths(G_ref, predecessor, node_end):
 								reference_path_list_predecessor.append(i_path_predecessor)
@@ -146,7 +146,14 @@ class PatientGraph:
 						if len(reference_path_list_predecessor) == 0 and len(reference_path_list_successor) == 0:
 							logger.critical("No reference path between %s and %s",node_start,node_end)						
 							logger.critical("Alternative path : %s",alternative_path)
-							continue
+							continue					
+
+					# if len(reference_path_list) == 0:
+					# 	logger.critical("No reference path between %s and %s",node_start,node_end)						
+					# 	logger.critical("Alternative path : %s",alternative_path)
+					# 	continue
+
+
 					if len(reference_path_list) > 1 :
 						alignment_score = -10000
 						alternative_sequence = ALT.kmerpathToSeq(alternative_path,k)
