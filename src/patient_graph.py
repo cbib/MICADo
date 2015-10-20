@@ -122,56 +122,76 @@ class PatientGraph:
 					for i_path in nx.all_simple_paths(G_ref, node_start, node_end):
 						reference_path_list.append(i_path)
 
-					#if there is no reference path, check predecessors/successors of start/end nodes of the path (just +1 at this moment)
-					if len(reference_path_list) == 0:
-						reference_path_list_successor = [] 
-						reference_path_list_predecessor = [] 
-						for successor in G_ref.successors(node_end):
-							for i_path_successor in nx.all_simple_paths(G_ref, node_start ,successor):
-								reference_path_list_successor.append(i_path_successor)
-							if len(reference_path_list_successor) > 0:
-								logger.critical("Successor is add to the reference and alternative path between %s and %s",node_start,node_end)
-								alternative_path.append(successor)
-								node_end = successor
-								reference_path_list = reference_path_list_successor
-						for predecessor in G_ref.predecessors(node_start):
-							for i_path_predecessor in nx.all_simple_paths(G_ref, predecessor, node_end):
-								reference_path_list_predecessor.append(i_path_predecessor)
-							if len(reference_path_list_predecessor) > 0:
-								logger.critical("Predecessor is add to the reference and alternative path between %s and %s",node_start,node_end)										
-								alternative_path.insert(0,predecessor)
-								node_start = predecessor
-								reference_path_list = reference_path_list_predecessor
-								break
-						if len(reference_path_list_predecessor) == 0 and len(reference_path_list_successor) == 0:
-							logger.critical("No reference path between %s and %s",node_start,node_end)						
-							logger.critical("Alternative path : %s",alternative_path)
-							continue					
-
+					## if there is no reference path, check predecessors/successors of start/end nodes of the path (just +1 at this moment)
+					## add the choice to use it or remove it
 					# if len(reference_path_list) == 0:
-					# 	logger.critical("No reference path between %s and %s",node_start,node_end)						
-					# 	logger.critical("Alternative path : %s",alternative_path)
-					# 	continue
+					# 	reference_path_list_successor = [] 
+					# 	reference_path_list_predecessor = [] 
+					# 	for successor in G_ref.successors(node_end):
+					# 		for i_path_successor in nx.all_simple_paths(G_ref, node_start ,successor):
+					# 			reference_path_list_successor.append(i_path_successor)
+					# 		if len(reference_path_list_successor) > 0:
+					# 			logger.critical("Successor is add to the reference and alternative path between %s and %s",node_start,node_end)
+					# 			alternative_path.append(successor)
+					# 			node_end = successor
+					# 			reference_path_list = reference_path_list_successor
+					# 	for predecessor in G_ref.predecessors(node_start):
+					# 		for i_path_predecessor in nx.all_simple_paths(G_ref, predecessor, node_end):
+					# 			reference_path_list_predecessor.append(i_path_predecessor)
+					# 		if len(reference_path_list_predecessor) > 0:
+					# 			logger.critical("Predecessor is add to the reference and alternative path between %s and %s",node_start,node_end)										
+					# 			alternative_path.insert(0,predecessor)
+					# 			node_start = predecessor
+					# 			reference_path_list = reference_path_list_predecessor
+					# 			break
+					# 	if len(reference_path_list_predecessor) == 0 and len(reference_path_list_successor) == 0:
+					# 		logger.critical("No reference path between %s and %s",node_start,node_end)						
+					# 		logger.critical("Alternative path : %s",alternative_path)
+					# 		continue					
 
+					if len(reference_path_list) == 0:
+						logger.critical("No reference path between %s and %s",node_start,node_end)						
+						logger.critical("Alternative path : %s",alternative_path)
+						continue
 
+					## if there is multiple references paths, check the largest read intersection or the smallest reference tags
 					if len(reference_path_list) > 1 :
-						alignment_score = -10000
-						alternative_sequence = ALT.kmerpathToSeq(alternative_path,k)
-						for i_reference_path in range(0,len(reference_path_list)):
-							reference_sequence = ALT.kmerpathToSeq(reference_path_list[i_reference_path],k)
-							score = pairwise2.align.globalms(alternative_sequence,reference_sequence, 2, -3, -5, -2)[0][2]
-							if score > alignment_score:
-								alignment_score = score
-								reference_path = reference_path_list[i_reference_path]
-							elif score == alignment_score:
-								old_ref_list_set = set()
-								new_ref_list_set = set()
+						sizeBiggestIntersection = len(list(set(alternative_path) & set(reference_path_list[0])))
+						reference_path = reference_path_list[0]
+						for i_reference_path in range(1,len(reference_path_list)):
+							sizeIntersection_ = list(set(alternative_path) & set(reference_path_list[i_reference_path]))
+							if sizeIntersection_ > sizeBiggestIntersection: 
+								sizeBiggestIntersection = list(set(alternative_path) & set(reference_path_list[i_reference_path]))
+								reference_path_list = reference_path_list[i_reference_path] 
+							elif sizeIntersection_ == sizeBiggestIntersection:
+								old_ref_list_set,new_ref_list_set = set(),set()
 								for node2check in reference_path:
 									old_ref_list_set.update(set(G_ref.node[node2check]['ref_list'].keys()))
 								for node2check in reference_path_list[i_reference_path]:
 									new_ref_list_set.update(set(G_ref.node[node2check]['ref_list'].keys()))
 								if len(old_ref_list_set) > len(new_ref_list_set):
 									reference_path = reference_path_list[i_reference_path]
+
+					## old version whith alignment
+					# if len(reference_path_list) > 1 :
+					# 	alignment_score = -10000
+					# 	alternative_sequence = ALT.kmerpathToSeq(alternative_path,k)
+					# 	for i_reference_path in range(0,len(reference_path_list)):
+					# 		reference_sequence = ALT.kmerpathToSeq(reference_path_list[i_reference_path],k)
+					# 		score = pairwise2.align.globalms(alternative_sequence,reference_sequence, 2, -3, -5, -2)[0][2]
+					# 		if score > alignment_score:
+					# 			alignment_score = score
+					# 			reference_path = reference_path_list[i_reference_path]
+					# 		elif score == alignment_score:
+					# 			old_ref_list_set = set()
+					# 			new_ref_list_set = set()
+					# 			for node2check in reference_path:
+					# 				old_ref_list_set.update(set(G_ref.node[node2check]['ref_list'].keys()))
+					# 			for node2check in reference_path_list[i_reference_path]:
+					# 				new_ref_list_set.update(set(G_ref.node[node2check]['ref_list'].keys()))
+					# 			if len(old_ref_list_set) > len(new_ref_list_set):
+					# 				reference_path = reference_path_list[i_reference_path]
+
 					else:
 						reference_path = reference_path_list[0]
 					# Read intersection of all nodes in the reference path for g_patient 
