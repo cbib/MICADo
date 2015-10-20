@@ -33,8 +33,8 @@ def process_sample(kmer_length, min_support_percentage,  n_permutations, sample_
 
 	# Is there cycles in reference graph?
 	if list(nx.simple_cycles(g_reference.dbg)):
-		if kmer_length > 50:
-			logger.info("There are always cycle(s) with k==50...exiting")
+		if kmer_length > 70:
+			logger.info("There are always cycle(s) with k==70...exiting")
 			sys.exit(0)
 		# Check non depassement valeur limite de k 
 		return process_sample(kmer_length=kmer_length+1,sample_key=sample_key,fastq_files=fastq_files,fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name, min_support_percentage=min_support_percentage, n_permutations=n_permutations, destination_directory=destination_directory, export_gml=export_gml)
@@ -47,8 +47,8 @@ def process_sample(kmer_length, min_support_percentage,  n_permutations, sample_
 
 	# Is there cycles in patient graph?
 	if list(nx.simple_cycles(g_patient.dbgclean)):
-		if kmer_length > 50:
-			logger.info("There are always cycle(s) with k==50...exiting")
+		if kmer_length > 70:
+			logger.info("There are always cycle(s) with k==70...exiting")
 			sys.exit(0)
 		# Check non depassement valeur limite de k 
 		return process_sample(kmer_length=kmer_length+1,sample_key=sample_key,fastq_files=",".join(fastq_files),fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name, min_support_percentage=min_support_percentage, n_permutations=n_permutations, destination_directory=destination_directory, export_gml=export_gml)
