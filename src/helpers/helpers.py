@@ -5,8 +5,10 @@ import datetime
 
 __author__ = 'hayssam'
 
+
 def mean(vec):
-	return sum(vec)*1.0/len(vec)
+	return sum(vec) * 1.0 / len(vec)
+
 
 def time_iterator(an_iter, logger, delta_percent=0.01, msg_prefix=None, tot_items=None):
 	tot_items = tot_items or len(an_iter)
@@ -19,7 +21,7 @@ def time_iterator(an_iter, logger, delta_percent=0.01, msg_prefix=None, tot_item
 
 		yield i, doc
 
-		if (i % percent_increase ) == 0:
+		if (i % percent_increase) == 0:
 			elapsed = time.time() - start_time
 			elapsed_since_last = time.time() - last_percent
 			last_percent = time.time()
@@ -38,3 +40,10 @@ def get_or_create_dir(dirname):
 	if not os.path.isdir(dirname):
 		os.makedirs(dirname)
 	return dirname
+
+
+root_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..',))
+assert os.path.exists(root_dir)
+
+data_dir = os.path.join(root_dir, 'data')
+assert os.path.exists(data_dir),data_dir
