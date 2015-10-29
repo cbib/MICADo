@@ -201,6 +201,7 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix=
 	logger.info("%s: Original sampled reads",output_file_prefix + "_non_alt.fastq")
 	logger.info("%s: Altered sampled reads",output_file_prefix + ".fastq")
 	logger.info("%s: Alterations description",output_file_prefix + ".alterations.txt")
+	logger.info("Alterations are %s",some_alterations)
 
 
 if __name__ == '__main__':
