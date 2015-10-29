@@ -1,13 +1,9 @@
 from argparse import ArgumentParser
 import random
-import sys
-
-from helpers.logger import init_logger
-
-sys.path.extend(['/Users/hayssam/Documents/MICADo/src'])
-from helpers.helpers import time_iterator
 import pandas as pd
 from pyparsing import Word, OneOrMore, Group
+from helpers.logger import init_logger
+from helpers.helpers import time_iterator
 
 pd.set_option('display.width', 250)
 
@@ -16,11 +12,7 @@ __author__ = 'hayssam'
 logger = init_logger(name="READSAMPLER")
 
 
-# PARAMETERS
-
-
-
-##### cigar parser
+##### pyparsing based cigar parser
 def convertIntegers(tokens):
 	return int(tokens[0])
 
@@ -32,7 +24,7 @@ alt_length = Word(digits).setParseAction(convertIntegers)
 alt_and_length = Group(alt_length + an_alt)
 cigar_string = OneOrMore(alt_and_length)
 
-
+# Exemple usage:
 # cigar_string.parseString("76M1I257M1I22M1I99M")
 # % timeit cigar_string.parseString("76M1I257M1I22M1I99M")[1]
 
@@ -203,7 +195,7 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix)
 
 	# generate original reads
 	with open(output_file_prefix + "_non_alt.fastq", "w") as f:
-		for i, read_label in time_iterator(sub_reads.QNAME, logger, msg_prefix="Generating non altered fastq, non altered reads",delta_percent=0.1):
+		for i, read_label in time_iterator(sub_reads.QNAME, logger, msg_prefix="Generating non altered fastq, non altered reads", delta_percent=0.1):
 			print >> f, "@%s" % (clean_label(read_label)) + "_ORIG"
 			print >> f, sub_reads.ix[read_label].SEQ
 			print >> f, "+"
@@ -213,14 +205,14 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix)
 	# generate altered reads fastq files
 	with open(output_file_prefix + ".fastq", "w") as f:
 
-		for i, read_label in time_iterator(altered_reads, logger, msg_prefix="Generating altered fastq, altered reads",delta_percent=0.1):
+		for i, read_label in time_iterator(altered_reads, logger, msg_prefix="Generating altered fastq, altered reads", delta_percent=0.1):
 			print >> f, "@%s" % (clean_label(read_label)) + "_ALT"
 			print >> f, "".join(mutating_sequence_iterator(read_label=read_label, alterations=some_alterations))
 			print >> f, "+"
 			print >> f, "".join(mutating_sequence_iterator(read_label=read_label, alterations=some_alterations, output="qual"))
 			print >> f, "\n"
 
-		for i, read_label in time_iterator(non_altered_reads, logger, msg_prefix="Generating altered fastq, non altered reads",delta_percent=0.1):
+		for i, read_label in time_iterator(non_altered_reads, logger, msg_prefix="Generating altered fastq, non altered reads", delta_percent=0.1):
 			print >> f, "@%s" % (clean_label(read_label)) + "_ORIG"
 			print >> f, sub_reads.ix[read_label].SEQ
 			print >> f, "+"
