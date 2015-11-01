@@ -19,92 +19,102 @@ from patient_graph import PatientGraph as PG
 
 logger.info("Import finished")
 
-def process_sample(kmer_length, min_support_percentage,  n_permutations, sample_key=None, fastq_files=None, fasta_file=None, snp_file=None, experiment_name=None, destination_directory=".", export_gml=False):
 
+def process_sample(kmer_length, min_support_percentage, n_permutations, sample_key=None, fastq_files=None, fasta_file=None, snp_file=None, experiment_name=None,
+				   destination_directory=".", export_gml=False):
 	if experiment_name == "TP53":
 		from randomreadsgraph_TP53 import RandomReadsGraph as RRG
 		import forannotation as ANNO
-	else: 
+	else:
 		from randomreadsgraph import RandomReadsGraph as RRG
 
 	# g_reference construction
-	logger.info("Will build reference graph with k==%d and fasta=%s & snp=%s", kmer_length,fasta_file,snp_file)
-	g_reference = RG(kmer_length,fasta_file,snp_file)
+	logger.info("Will build reference graph with k==%d and fasta=%s & snp=%s", kmer_length, fasta_file, snp_file)
+	g_reference = RG(kmer_length, fasta_file, snp_file)
 
 	# Is there cycles in reference graph?
 	if list(nx.simple_cycles(g_reference.dbg)):
 		if kmer_length > 70:
 			logger.info("There are always cycle(s) with k==70...exiting")
 			sys.exit(0)
-		# Check non depassement valeur limite de k 
-		return process_sample(kmer_length=kmer_length+1,sample_key=sample_key,fastq_files=fastq_files,fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name, min_support_percentage=min_support_percentage, n_permutations=n_permutations, destination_directory=destination_directory, export_gml=export_gml)
+		# Check non depassement valeur limite de k
+		logger.info("[Reference graph] Increasing k to %d to remove cycles", kmer_length)
+		return process_sample(kmer_length=kmer_length + 1, sample_key=sample_key, fastq_files=fastq_files, fasta_file=fasta_file, snp_file=snp_file,
+							  experiment_name=experiment_name, min_support_percentage=min_support_percentage, n_permutations=n_permutations,
+							  destination_directory=destination_directory, export_gml=export_gml)
 
 	# g_patient construction
 	logger.info("Will build patient graph for %s with k==%d and minimum support = %dpct", fastq_files, kmer_length, min_support_percentage)
 	fastq_files = fastq_files.split(",")
 	g_patient = PG(fastq_files, kmer_length)
-	g_patient.graph_cleaned_init(min_support_percentage) 
+	logger.info("Before cleaning: %d nodes", len(g_patient.dbg))
+	g_patient.graph_cleaned_init(min_support_percentage)
+	logger.info("After cleaning: %d nodes", len(g_patient.dbgclean))
 
 	# Is there cycles in patient graph?
 	if list(nx.simple_cycles(g_patient.dbgclean)):
 		if kmer_length > 70:
-			logger.info("There are always cycle(s) with k==70...exiting")
+			logger.info("There are still cycle(s) with k==70...exiting")
 			sys.exit(0)
-		# Check non depassement valeur limite de k 
-		return process_sample(kmer_length=kmer_length+1,sample_key=sample_key,fastq_files=",".join(fastq_files),fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name, min_support_percentage=min_support_percentage, n_permutations=n_permutations, destination_directory=destination_directory, export_gml=export_gml)
+		# Check non depassement valeur limite de k
+		logger.info("[Sample graph] Increasing k to %d to remove cycles", kmer_length)
+		return process_sample(kmer_length=kmer_length + 1, sample_key=sample_key, fastq_files=",".join(fastq_files), fasta_file=fasta_file, snp_file=snp_file,
+							  experiment_name=experiment_name, min_support_percentage=min_support_percentage, n_permutations=n_permutations,
+							  destination_directory=destination_directory, export_gml=export_gml)
 
 	# Some prints for stats 
-	dir_stat = get_or_create_dir("output/statistics") 
+	dir_stat = get_or_create_dir("output/statistics")
 	# graph stat
-	graph_stat_file = open(dir_stat+"/graph_stat_file"+sample_key+".tsv", 'w')
+	graph_stat_file = open(dir_stat + "/graph_stat_file" + sample_key + ".tsv", 'w')
 	graph_stat_file.write(
-		"%d\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n"%(
-		kmer_length,
-		g_reference.dbg.size(),
-		sample_key,
-		g_patient.coverage['total'],
-		g_patient.dbg.size(),
-		g_patient.dbgclean.size(),
-		g_patient.dbg.in_degree().values().count(0),
-		g_patient.dbg.out_degree().values().count(0),
-		g_patient.dbgclean.in_degree().values().count(0),
-		g_patient.dbgclean.out_degree().values().count(0)
+		"%d\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n" % (
+			kmer_length,
+			g_reference.dbg.size(),
+			sample_key,
+			g_patient.coverage['total'],
+			g_patient.dbg.size(),
+			g_patient.dbgclean.size(),
+			g_patient.dbg.in_degree().values().count(0),
+			g_patient.dbg.out_degree().values().count(0),
+			g_patient.dbgclean.in_degree().values().count(0),
+			g_patient.dbgclean.out_degree().values().count(0)
 		))
 	# kmer stat
-	kmer_stat_file = open(dir_stat+"/kmer_stat_file"+sample_key+".tsv", 'w')
+	kmer_stat_file = open(dir_stat + "/kmer_stat_file" + sample_key + ".tsv", 'w')
 	for node_print in g_patient.dbg.nodes():
 		fragment_print = ",".join(g_patient.dbg.node[node_print]['fastq_id'])
 		reads_print = len(g_patient.dbg.node[node_print]['read_list_n'])
 		kmer_stat_file.write(
-			"%s\t%s\t%s\t%d\n"%(
-			sample_key,
-			node_print,
-			fragment_print,
-			reads_print,
+			"%s\t%s\t%s\t%d\n" % (
+				sample_key,
+				node_print,
+				fragment_print,
+				reads_print,
 			))
 
- 	# copy g_patient cleaned and remove reference edges on it (.dbg_refrm creation)
-	g_patient.graph_rmRefEdges_init(g_patient.dbgclean,g_reference.dbg) 
+	# copy g_patient cleaned and remove reference edges on it (.dbg_refrm creation)
+	g_patient.graph_rmRefEdges_init(g_patient.dbgclean, g_reference.dbg)
 
 	# search for alternative paths in dbg_refrm (.alteration_list creation)
-	g_patient.alteration_list_init(g_reference.dbg,kmer_length,min_support_percentage)  
+	g_patient.alteration_list_init(g_reference.dbg, kmer_length, min_support_percentage)
 
 	### Permutation test ###
 	logger.info("Will create random graphs")
-	all_possible_kmers=set()
+	all_possible_kmers = set()
 	for an_alt in g_patient.alteration_list:
 		all_possible_kmers.update(an_alt.reference_path)
 		all_possible_kmers.update(an_alt.alternative_path)
 
 	for i, j in time_iterator(range(0, n_permutations), logger, msg_prefix="permuting"):
-		g_random = RRG(g_patient.coverage, kmer_length,restrict_to=all_possible_kmers)
+		g_random = RRG(g_patient.coverage, kmer_length, restrict_to=all_possible_kmers)
 		for i_alteration in range(0, len(g_patient.alteration_list)):
-			g_random_data = g_random.check_path(g_patient.alteration_list[i_alteration].reference_path, g_patient.alteration_list[i_alteration].alternative_path, g_patient.alteration_list[i_alteration].min_coverage)
+			g_random_data = g_random.check_path(g_patient.alteration_list[i_alteration].reference_path, g_patient.alteration_list[i_alteration].alternative_path,
+												g_patient.alteration_list[i_alteration].min_coverage)
 			g_patient.alteration_list[i_alteration].random_ratio_list.append(g_random_data[0])
 			g_patient.alteration_list[i_alteration].random_reference_count_list.append(g_random_data[1])
 			g_patient.alteration_list[i_alteration].random_alternative_count_list.append(g_random_data[2])
 
-	logger.info("Will generate p-values")
+	logger.info("Will generate p-values for %d possible alterations",len(g_patient.alteration_list))
 	for i_alteration in range(0, len(g_patient.alteration_list)):
 		g_patient.alteration_list[i_alteration].pvalue_init()
 
@@ -112,26 +122,26 @@ def process_sample(kmer_length, min_support_percentage,  n_permutations, sample_
 
 	# If more than one significant alteration, check if they are not in "spike" (en épis)
 	if len(g_patient.significant_alteration_list) > 1:
-	 	g_patient.multiple_alternative_path_filter()
+		g_patient.multiple_alternative_path_filter()
 
 	## Stat 
 	# alteration stat
-	alt_stat_file = open(dir_stat+"/alt_stat_file"+sample_key+".tsv", 'w')
+	alt_stat_file = open(dir_stat + "/alt_stat_file" + sample_key + ".tsv", 'w')
 	for i_alteration in range(0, len(g_patient.alteration_list)):
-		if g_patient.alteration_list[i_alteration].pvalue_ratio <= 1:			
-			alt_stat_file.write("%d\t%s\t%d\t%s\t%s\t%s\t%s\t%f\t%f\t%s\t%s\n" % (				
-			i_alteration+1,
-			sample_key,
-			g_patient.coverage['total'],
-			g_patient.alteration_list[i_alteration].reference_sequence,
-			g_patient.alteration_list[i_alteration].alternative_sequence,
-			g_patient.alteration_list[i_alteration].reference_read_count,
-			g_patient.alteration_list[i_alteration].alternative_read_count,
-			g_patient.alteration_list[i_alteration].ratio_read_count,
-			g_patient.alteration_list[i_alteration].pvalue_ratio,
-			str(g_patient.alteration_list[i_alteration].zscore),
-			"\t".join(map(str,g_patient.alteration_list[i_alteration].random_ratio_list))
-			))
+		if g_patient.alteration_list[i_alteration].pvalue_ratio <= 1:
+			alt_stat_file.write("%d\t%s\t%d\t%s\t%s\t%s\t%s\t%f\t%f\t%s\t%s\n" % (
+				i_alteration + 1,
+				sample_key,
+				g_patient.coverage['total'],
+				g_patient.alteration_list[i_alteration].reference_sequence,
+				g_patient.alteration_list[i_alteration].alternative_sequence,
+				g_patient.alteration_list[i_alteration].reference_read_count,
+				g_patient.alteration_list[i_alteration].alternative_read_count,
+				g_patient.alteration_list[i_alteration].ratio_read_count,
+				g_patient.alteration_list[i_alteration].pvalue_ratio,
+				str(g_patient.alteration_list[i_alteration].zscore),
+				"\t".join(map(str, g_patient.alteration_list[i_alteration].random_ratio_list))
+				))
 
 	# For visualisation
 	graph_name = "G_%s_" % sample_key
@@ -145,8 +155,8 @@ def process_sample(kmer_length, min_support_percentage,  n_permutations, sample_
 		g_reference_merge = VISU.merge_reference_graph(g_reference.dbg.copy())
 		g_reference_visu = VISU.reference_graph_visualization_formatting(g_reference.dbg.copy())
 		g_reference_merge_visu = VISU.reference_graph_merged_visualization_formatting(g_reference_merge.copy())
-		nx.write_gml(g_reference_visu,destination_directory+"/g_reference_visu"+str(kmer_length)+".gml")
-		nx.write_gml(g_reference_merge_visu,destination_directory+"/g_reference_merge_visu"+str(kmer_length)+".gml")
+		nx.write_gml(g_reference_visu, destination_directory + "/g_reference_visu" + str(kmer_length) + ".gml")
+		nx.write_gml(g_reference_merge_visu, destination_directory + "/g_reference_merge_visu" + str(kmer_length) + ".gml")
 		# for the patient graph
 		g_patient_visu = VISU.individu_graph_visualization_formating(g_patient.dbg.copy(), g_reference.dbg.copy())
 		g_patient_clean_visu = VISU.individu_graph_visualization_formating(g_patient.dbgclean.copy(), g_reference.dbg.copy())
@@ -158,21 +168,22 @@ def process_sample(kmer_length, min_support_percentage,  n_permutations, sample_
 		nx.write_gml(g_patient_clean_visu, destination_directory + "/" + cleaned_graph_name + str(kmer_length) + ".gml")
 		nx.write_gml(g_patient_merged_visu, destination_directory + "/" + merged_graph_name + str(kmer_length) + ".gml")
 		nx.write_gml(g_patient_clean_merged_visu, destination_directory + "/" + merged_cleaned_graph_name + str(kmer_length) + ".gml")
-		
+
 	# Annotation
 	if experiment_name == "TP53":
-		ANNO.alteration_list_to_transcrit_mutation(g_patient,g_reference)
+		ANNO.alteration_list_to_transcrit_mutation(g_patient, g_reference)
 
 	# SNP 
-	dir_stat = get_or_create_dir("output/snp") 
+	dir_stat = get_or_create_dir("output/snp")
 	# graph stat
-	graph_snp = open(dir_stat+"/snp_"+sample_key+".tsv", 'w')
+	graph_snp = open(dir_stat + "/snp_" + sample_key + ".tsv", 'w')
 	for snp_id in g_reference.snp.keys():
 		if g_reference.snp[snp_id][1] in g_patient.dbgclean:
-			if g_reference.snp[snp_id][0] in g_patient.dbgclean:				
-				graph_snp.write("%s\t%s\t%d\t%d\n"%(sample_key,snp_id,len(g_patient.dbg.node[g_reference.snp[snp_id][0]]['read_list_n']),len(g_patient.dbg.node[g_reference.snp[snp_id][1]]['read_list_n'])))
+			if g_reference.snp[snp_id][0] in g_patient.dbgclean:
+				graph_snp.write("%s\t%s\t%d\t%d\n" % (
+				sample_key, snp_id, len(g_patient.dbg.node[g_reference.snp[snp_id][0]]['read_list_n']), len(g_patient.dbg.node[g_reference.snp[snp_id][1]]['read_list_n'])))
 			else:
-				graph_snp.write("%s\t%s\t0\t%d\n"%(sample_key,snp_id,len(g_patient.dbg.node[g_reference.snp[snp_id][1]]['read_list_n'])))
+				graph_snp.write("%s\t%s\t0\t%d\n" % (sample_key, snp_id, len(g_patient.dbg.node[g_reference.snp[snp_id][1]]['read_list_n'])))
 
 
 if __name__ == "__main__":
@@ -182,7 +193,7 @@ if __name__ == "__main__":
 	parser.add_argument('--experiment', help='Experiment name, unique for one study (used for library construction)', required=True, type=str)
 	parser.add_argument('--fasta', help='FASTA file of reference sequences (with all the path)', required=False, type=str)
 	parser.add_argument('--snp', help='SNP file for reference sequence (with all the path)', required=False, type=str)
-	parser.add_argument('--min_support_percentage', help='Minimum of read support percentage for node filter', default=3, type=int, required=False)
+	parser.add_argument('--min_support_percentage', help='Minimum of read support percentage for node filter', default=3.0, type=float, required=False)
 	parser.add_argument('--samplekey', help='Unique sample key', default="", type=str, required=True)
 	parser.add_argument('--npermutations', help="number of permutations / random samples to perform", default=1000, type=int, required=False)
 	parser.add_argument("--destdir", help="Output directory", default="output/gml", type=str, required=False)
@@ -190,5 +201,6 @@ if __name__ == "__main__":
 
 	args = parser.parse_args()
 
-	process_sample(kmer_length=args.kmer_length, min_support_percentage=args.min_support_percentage, fastq_files=args.fastq, fasta_file=args.fasta, snp_file=args.snp, experiment_name=args.experiment, n_permutations=args.npermutations, sample_key=args.samplekey,
-					destination_directory=args.destdir, export_gml=args.export)
+	process_sample(kmer_length=args.kmer_length, min_support_percentage=args.min_support_percentage, fastq_files=args.fastq, fasta_file=args.fasta, snp_file=args.snp,
+				   experiment_name=args.experiment, n_permutations=args.npermutations, sample_key=args.samplekey,
+				   destination_directory=args.destdir, export_gml=args.export)
