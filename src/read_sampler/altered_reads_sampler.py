@@ -66,7 +66,7 @@ def random_alteration(start, end, weights, multi_mismatch=False):
 	# sample a position, alt type, length and content
 	a_pos = random.randint(start, end - MAX_LEN)
 	a_type = helpers.weighted_choice(zip("IMD", weights))
-	a_length = random.randint(1, 5)
+
 	if a_type == "M" and not multi_mismatch:
 		a_length = 1
 	else:
@@ -247,11 +247,13 @@ if __name__ == '__main__':
 	parser.add_argument('--input_sam', help='Input SAM file', required=True, type=str)
 	parser.add_argument('--alt_weight', help='Comma separated weights for alterations, in order:insertions, mismatches and deletions', required=False, type=str, default="1,1,1")
 	parser.add_argument('--max_len', help='Max INDEL length', required=False, type=int, default=5)
-	parser.add_argument('--seed', help='Random seed to use, by default: system time in seconds.', required=False, type=int, default=time.time())
+	parser.add_argument('--seed', help='Random seed to use, by default: system time in seconds.', required=False, type=int, default=None)
 	parser.add_argument('--multi_mismatch', help='Allow for mismatches over multiple nt', required=False, action='store_true')
 	args = parser.parse_args()
 	# starting_file = data_dir + "/alignments/C_model_GMAPno40_NM_000546.5.sam"
 	starting_file = args.input_sam
+	if not args.seed:
+		args.seed=time.time()
 	logger.info("Random seed is %d", args.seed)
 	random.seed(args.seed)
 	logger.info("Will parse input SAM")
