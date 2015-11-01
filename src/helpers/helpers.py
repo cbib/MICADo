@@ -1,4 +1,5 @@
 import os
+import random
 import time
 import datetime
 # from numpy import mean
@@ -8,6 +9,21 @@ __author__ = 'hayssam'
 
 def mean(vec):
 	return sum(vec) * 1.0 / len(vec)
+
+
+def weighted_choice(choices):
+	"""
+
+	:type choices: list of tuples (choice,weight)
+	"""
+	total = sum(w for c, w in choices)
+	r = random.uniform(0, total)
+	upto = 0
+	for c, w in choices:
+		if upto + w > r:
+			return c
+		upto += w
+	assert False, "Shouldn't get here"
 
 
 def time_iterator(an_iter, logger, delta_percent=0.01, msg_prefix=None, tot_items=None):
@@ -42,8 +58,8 @@ def get_or_create_dir(dirname):
 	return dirname
 
 
-root_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..',))
+root_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', ))
 assert os.path.exists(root_dir)
 
 data_dir = os.path.join(root_dir, 'data')
-assert os.path.exists(data_dir),data_dir
+assert os.path.exists(data_dir), data_dir

@@ -2,6 +2,8 @@ from argparse import ArgumentParser
 import random
 import pandas as pd
 from pyparsing import Word, OneOrMore, Group
+import time
+from helpers import helpers
 from helpers.logger import init_logger
 from helpers.helpers import time_iterator
 
@@ -24,9 +26,11 @@ alt_length = Word(digits).setParseAction(convertIntegers)
 alt_and_length = Group(alt_length + an_alt)
 cigar_string = OneOrMore(alt_and_length)
 
+
 # Exemple usage:
 # cigar_string.parseString("76M1I257M1I22M1I99M")
 # % timeit cigar_string.parseString("76M1I257M1I22M1I99M")[1]
+
 
 
 # convert coordinates
@@ -58,11 +62,15 @@ def coordinate_map(an_alignment_row):
 	return range_accumulator
 
 
-def random_alteration(start, end):
+def random_alteration(start, end, weights, multi_mismatch=False):
 	# sample a position, alt type, length and content
 	a_pos = random.randint(start, end - MAX_LEN)
-	a_type = random.choice("IMD")
+	a_type = helpers.weighted_choice(zip("IMD", weights))
 	a_length = random.randint(1, 5)
+	if a_type == "M" and not multi_mismatch:
+		a_length = 1
+	else:
+		a_length = random.randint(1, 5)
 	a_content = "".join([random.choice("actg") for _ in range(a_length)])
 	a_qual = "q" * a_length
 	# TODO parameter to force mismatches to be of length 1 or 2 (more realistic)
@@ -169,7 +177,9 @@ def clean_label(lbl):
 	return lbl.replace("/", "_")
 
 
-def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix):
+def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix, alterations_weight=None, multi_mismatch=False):
+	if not alterations_weight:
+		alterations_weight = [1.0, 1.0, 1.0]
 	global all_ranges
 
 	# sample some reads
@@ -187,7 +197,7 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix)
 	ref_end = max([max(x) for x in all_ranges.ref_coord])
 
 	# sample random alterations, reads that should be altered / kept as it
-	some_alterations = dict([random_alteration(ref_start, ref_end) for _ in range(n_alterations)])
+	some_alterations = dict([random_alteration(ref_start, ref_end, weights=alterations_weight, multi_mismatch=multi_mismatch) for _ in range(n_alterations)])
 	altered_reads = list(sub_reads.sample(int(len(sub_reads) * fraction_altered)).QNAME)
 	non_altered_reads = set(sub_reads.QNAME).difference(altered_reads)
 
@@ -235,10 +245,15 @@ if __name__ == '__main__':
 	parser.add_argument('--n_alterations', help='Number of alterations to insert', required=False, type=int, default=1)
 	parser.add_argument('--output_file_prefix', help='output file prefix', required=True, type=str)
 	parser.add_argument('--input_sam', help='Input SAM file', required=True, type=str)
+	parser.add_argument('--alt_weight', help='Comma separated weights for alterations, in order:insertions, mismatches and deletions', required=False, type=str, default="1,1,1")
 	parser.add_argument('--max_len', help='Max INDEL length', required=False, type=int, default=5)
+	parser.add_argument('--seed', help='Random seed to use, by default: system time in seconds.', required=False, type=int, default=time.time())
+	parser.add_argument('--multi_mismatch', help='Allow for mismatches over multiple nt', required=False, action='store_true')
 	args = parser.parse_args()
 	# starting_file = data_dir + "/alignments/C_model_GMAPno40_NM_000546.5.sam"
 	starting_file = args.input_sam
+	logger.info("Random seed is %d", args.seed)
+	random.seed(args.seed)
 	logger.info("Will parse input SAM")
 	aligned_reads = pd.DataFrame.from_csv(starting_file, sep="\t", header=5, index_col=None)
 	SAM_COLUMNS = ["QNAME", "FLAG", "RNAME", "POS", "MAPQ", "CIGAR", "RNEXT", "PNEXT", "TLEN", "SEQ", "QUAL"]
@@ -249,4 +264,14 @@ if __name__ == '__main__':
 	MAX_LEN = args.max_len
 	all_ranges = None
 
-	build_a_sample(n_reads=args.n_reads, n_alterations=args.n_alterations, fraction_altered=args.fraction_altered, output_file_prefix=args.output_file_prefix)
+	# parse alteration weight
+	try:
+		alt_weights = map(float, args.alt_weight.split(","))
+		assert len(alt_weights) == 3, "3 comma separated weights should be provided"
+	except:
+		raise SyntaxError
+	build_a_sample(n_reads=args.n_reads, n_alterations=args.n_alterations,
+				   fraction_altered=args.fraction_altered,
+				   output_file_prefix=args.output_file_prefix,
+				   alterations_weight=alt_weights,
+				   multi_mismatch=args.multi_mismatch)
