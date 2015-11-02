@@ -83,7 +83,8 @@ def sampling(coverage_dict):
 			continue
 		fragment=fragment[0]
 		read_sampling_for_remainder = []
-		# coverage = 1000 if coverage < 1000
+		# ATTENTION !!!!!
+		coverage = 700
 		read_number_by_sample = coverage / len(read_library[fragment])
 		read_number_remainder = coverage % len(read_library[fragment])
 		for sample in read_library[fragment]:
