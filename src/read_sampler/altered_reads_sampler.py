@@ -1,3 +1,4 @@
+# coding=utf-8
 from argparse import ArgumentParser
 import random
 import pandas as pd
@@ -31,13 +32,12 @@ cigar_string = OneOrMore(alt_and_length)
 # cigar_string.parseString("76M1I257M1I22M1I99M")
 # % timeit cigar_string.parseString("76M1I257M1I22M1I99M")[1]
 
-
-
 # convert coordinates
 def coordinate_map(an_alignment_row):
+	global args
 	range_accumulator = []
 	cigar = an_alignment_row.CIGAR
-	start_pos = an_alignment_row.POS
+	start_pos = an_alignment_row.POS + args.systematic_offset
 	label = an_alignment_row.QNAME
 	read_start_range = (0, 0)
 	ref_start_range = (start_pos, start_pos)
@@ -184,22 +184,26 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix,
 
 	# sample some reads
 	sub_reads = aligned_reads.sample(n_reads)
+
 	# compute reference coordinates using the CIGAR
 	all_ranges = []
 	for i, an_alignment in sub_reads.iterrows():
 		all_ranges.extend(coordinate_map(an_alignment))
 	logger.info("Mapped coordinates to reference")
 	all_ranges = pd.DataFrame.from_records(all_ranges)
-	all_ranges.set_index("label", inplace=True)
+	all_ranges.set_index("label", inplace=True, drop=False)
 
-	# identify start and stop positions
-	ref_start = min([min(x) for x in all_ranges.ref_coord])
-	ref_end = max([max(x) for x in all_ranges.ref_coord])
+	# sample altered reads
+	altered_reads_row = all_ranges.sample(int(len(sub_reads) * fraction_altered))
+	altered_reads = list(altered_reads_row.label)
+	non_altered_reads = set(all_ranges.label).difference(altered_reads)
+
+	# identify start and stop positions of reads that should be altered
+	ref_start = min([min(x) for x in altered_reads_row.ref_coord])
+	ref_end = max([max(x) for x in altered_reads_row.ref_coord])
 
 	# sample random alterations, reads that should be altered / kept as it
 	some_alterations = dict([random_alteration(ref_start, ref_end, weights=alterations_weight, multi_mismatch=multi_mismatch) for _ in range(n_alterations)])
-	altered_reads = list(sub_reads.sample(int(len(sub_reads) * fraction_altered)).QNAME)
-	non_altered_reads = set(sub_reads.QNAME).difference(altered_reads)
 
 	logger.info("Generated alterations")
 
@@ -238,7 +242,19 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix,
 	logger.info("Alterations are %s", some_alterations)
 
 
+def parse_sam_file(sam_file):
+	# sam_content = pd.DataFrame.from_csv(sam_file, sep="\t", header=5, index_col=None)
+	sam_content = pd.read_csv(sam_file, sep="\t", header=5, index_col=None,quotechar=u"±")
+	logger.info("Read %d lines SAM file",len(sam_content))
+	sam_columns = ["QNAME", "FLAG", "RNAME", "POS", "MAPQ", "CIGAR", "RNEXT", "PNEXT", "TLEN", "SEQ", "QUAL"]
+	this_columns = sam_columns + ["custom_%d" % i for i in range(len(sam_columns), sam_content.shape[1])]
+	sam_content.columns = this_columns
+	sam_content.set_index("QNAME", drop=False, inplace=True)
+	return sam_content
+
+
 if __name__ == '__main__':
+	global args
 	parser = ArgumentParser()
 	parser.add_argument('--n_reads', help='Number of reads for the generated sample', default=500, type=int, required=False)
 	parser.add_argument('--fraction_altered', help='Fraction (between 0 and 1) of reads that should have recurrent alterations', required=False, type=float, default=0.1)
@@ -249,19 +265,16 @@ if __name__ == '__main__':
 	parser.add_argument('--max_len', help='Max INDEL length', required=False, type=int, default=5)
 	parser.add_argument('--seed', help='Random seed to use, by default: system time in seconds.', required=False, type=int, default=None)
 	parser.add_argument('--multi_mismatch', help='Allow for mismatches over multiple nt', required=False, action='store_true')
+	parser.add_argument('--systematic_offset', help='Systematically offset all reported reference coordinates by this value', required=False, type=int, default=0)
 	args = parser.parse_args()
 	# starting_file = data_dir + "/alignments/C_model_GMAPno40_NM_000546.5.sam"
-	starting_file = args.input_sam
+
 	if not args.seed:
-		args.seed=time.time()
+		args.seed = time.time()
 	logger.info("Random seed is %d", args.seed)
 	random.seed(args.seed)
 	logger.info("Will parse input SAM")
-	aligned_reads = pd.DataFrame.from_csv(starting_file, sep="\t", header=5, index_col=None)
-	SAM_COLUMNS = ["QNAME", "FLAG", "RNAME", "POS", "MAPQ", "CIGAR", "RNEXT", "PNEXT", "TLEN", "SEQ", "QUAL"]
-	this_columns = SAM_COLUMNS + ["custom_%d" % i for i in range(len(SAM_COLUMNS), aligned_reads.shape[1])]
-	aligned_reads.columns = this_columns
-	aligned_reads.set_index("QNAME", drop=False, inplace=True)
+	aligned_reads = parse_sam_file(args.input_sam)
 	logger.info("Starting reads generation")
 	MAX_LEN = args.max_len
 	all_ranges = None
@@ -272,8 +285,10 @@ if __name__ == '__main__':
 		assert len(alt_weights) == 3, "3 comma separated weights should be provided"
 	except:
 		raise SyntaxError
-	build_a_sample(n_reads=args.n_reads, n_alterations=args.n_alterations,
-				   fraction_altered=args.fraction_altered,
-				   output_file_prefix=args.output_file_prefix,
-				   alterations_weight=alt_weights,
-				   multi_mismatch=args.multi_mismatch)
+	build_a_sample(
+		n_reads=args.n_reads, n_alterations=args.n_alterations,
+		fraction_altered=args.fraction_altered,
+		output_file_prefix=args.output_file_prefix,
+		alterations_weight=alt_weights,
+		multi_mismatch=args.multi_mismatch
+	)

@@ -114,7 +114,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, sample_k
 			g_patient.alteration_list[i_alteration].random_reference_count_list.append(g_random_data[1])
 			g_patient.alteration_list[i_alteration].random_alternative_count_list.append(g_random_data[2])
 
-	logger.info("Will generate p-values for %d possible alterations",len(g_patient.alteration_list))
+	logger.info("Will generate p-values for %d possible alterations", len(g_patient.alteration_list))
 	for i_alteration in range(0, len(g_patient.alteration_list)):
 		g_patient.alteration_list[i_alteration].pvalue_init()
 
@@ -141,7 +141,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, sample_k
 				g_patient.alteration_list[i_alteration].pvalue_ratio,
 				str(g_patient.alteration_list[i_alteration].zscore),
 				"\t".join(map(str, g_patient.alteration_list[i_alteration].random_ratio_list))
-				))
+			))
 
 	# For visualisation
 	graph_name = "G_%s_" % sample_key
@@ -171,7 +171,11 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, sample_k
 
 	# Annotation
 	if experiment_name == "TP53":
-		ANNO.alteration_list_to_transcrit_mutation(g_patient, g_reference)
+		anntotated_alterations = ANNO.alteration_list_to_transcrit_mutation(g_patient, g_reference)
+		# add experiment arguments
+		for d in anntotated_alterations:
+			d.update(args)
+		print anntotated_alterations
 
 	# SNP 
 	dir_stat = get_or_create_dir("output/snp")
@@ -181,7 +185,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, sample_k
 		if g_reference.snp[snp_id][1] in g_patient.dbgclean:
 			if g_reference.snp[snp_id][0] in g_patient.dbgclean:
 				graph_snp.write("%s\t%s\t%d\t%d\n" % (
-				sample_key, snp_id, len(g_patient.dbg.node[g_reference.snp[snp_id][0]]['read_list_n']), len(g_patient.dbg.node[g_reference.snp[snp_id][1]]['read_list_n'])))
+					sample_key, snp_id, len(g_patient.dbg.node[g_reference.snp[snp_id][0]]['read_list_n']), len(g_patient.dbg.node[g_reference.snp[snp_id][1]]['read_list_n'])))
 			else:
 				graph_snp.write("%s\t%s\t0\t%d\n" % (sample_key, snp_id, len(g_patient.dbg.node[g_reference.snp[snp_id][1]]['read_list_n'])))
 
@@ -201,6 +205,15 @@ if __name__ == "__main__":
 
 	args = parser.parse_args()
 
-	process_sample(kmer_length=args.kmer_length, min_support_percentage=args.min_support_percentage, fastq_files=args.fastq, fasta_file=args.fasta, snp_file=args.snp,
-				   experiment_name=args.experiment, n_permutations=args.npermutations, sample_key=args.samplekey,
-				   destination_directory=args.destdir, export_gml=args.export)
+	process_sample(
+		kmer_length=args.kmer_length,
+		min_support_percentage=args.min_support_percentage,
+		fastq_files=args.fastq,
+		fasta_file=args.fasta,
+		snp_file=args.snp,
+		experiment_name=args.experiment,
+		n_permutations=args.npermutations,
+		sample_key=args.samplekey,
+		destination_directory=args.destdir,
+		export_gml=args.export
+	)
