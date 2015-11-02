@@ -157,25 +157,28 @@ class PatientGraph:
 						logger.critical("Alternative path : %s", alternative_path)
 						continue
 
-					## if there is multiple references paths, check the largest read intersection or the smallest reference tags
+					## if there is multiple references paths, check the largest read intersection or the smallest reference tags 
+					## if no clear criteria for choice is found we keep the first reference path
 					if len(reference_path_list) > 1:
-						size_biggest_intersection = len(list(set(alternative_path) & set(reference_path_list[0])))
 						reference_path = reference_path_list[0]
+						size_biggest_intersection = len(list(set(alternative_path) & set(reference_path)))
 						for i_reference_path in range(1, len(reference_path_list)):
-							size_intersection = list(set(alternative_path) & set(reference_path_list[i_reference_path]))
+							curr_reference_path = reference_path_list[i_reference_path]
+							size_intersection = list(set(alternative_path) & set(curr_reference_path))
 							if size_intersection > size_biggest_intersection:
-								size_biggest_intersection = list(set(alternative_path) & set(reference_path_list[i_reference_path]))
-								reference_path_list = reference_path_list[i_reference_path]
+								size_biggest_intersection = size_intersection
+								reference_path = curr_reference_path
 							elif size_intersection == size_biggest_intersection:
-								old_ref_list_set, new_ref_list_set = set(), set()
-								for node2check in reference_path:
-									old_ref_list_set.update(set(G_ref.node[node2check]['ref_list'].keys()))
-								for node2check in reference_path_list[i_reference_path]:
-									new_ref_list_set.update(set(G_ref.node[node2check]['ref_list'].keys()))
-								if len(old_ref_list_set) > len(new_ref_list_set):
-									reference_path = reference_path_list[i_reference_path]
+								size_reference_path = len(reference_path)
+								size_curr_reference_path = len(curr_reference_path)
+								size_alternative_path = len(alternative_path)
+								delta_1 = abs (size_reference_path-size_alternative_path)
+								delta_2 = abs (size_curr_reference_path-size_alternative_path)
+								if delta_2 < delta_1:
+									size_biggest_intersection = size_intersection
+									reference_path = curr_reference_path
 
-					## old version whith alignment
+					# ## old version whith alignment
 					# if len(reference_path_list) > 1 :
 					# 	alignment_score = -10000
 					# 	alternative_sequence = ALT.kmerpathToSeq(alternative_path,k)
