@@ -5,7 +5,7 @@
 
 import networkx as nx
 from argparse import ArgumentParser
-from helpers.helpers import time_iterator, get_or_create_dir
+from helpers.helpers import time_iterator, get_or_create_dir, get_timestamp
 from helpers.logger import init_logger
 import sys
 
@@ -173,8 +173,11 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, sample_k
 	if experiment_name == "TP53":
 		anntotated_alterations = ANNO.alteration_list_to_transcrit_mutation(g_patient, g_reference)
 		# add experiment arguments
+		this_timestamp=get_timestamp()
 		for d in anntotated_alterations:
-			d.update(args)
+			d['timestamp']=this_timestamp
+			d.update(vars(args))
+
 		print anntotated_alterations
 
 	# SNP 

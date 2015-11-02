@@ -25,6 +25,10 @@ def weighted_choice(choices):
 		upto += w
 	assert False, "Shouldn't get here"
 
+def get_timestamp():
+    return str(datetime.datetime.now()).replace(":", "_").replace(".", "_").replace("-", "_").replace(" ", "_")
+
+
 
 def time_iterator(an_iter, logger, delta_percent=0.01, msg_prefix=None, tot_items=None):
 	tot_items = tot_items or len(an_iter)
