@@ -1,12 +1,14 @@
 # coding=utf-8
 from argparse import ArgumentParser
+import json
 import random
 import pandas as pd
-from pyparsing import Word, OneOrMore, Group
+from pyparsing import Word, OneOrMore, Group, ParseException
 import time
+import sys
 from helpers import helpers
 from helpers.logger import init_logger
-from helpers.helpers import time_iterator
+from helpers.helpers import time_iterator, get_git_revision_hash
 
 pd.set_option('display.width', 250)
 
@@ -43,7 +45,12 @@ def coordinate_map(an_alignment_row):
 	ref_start_range = (start_pos, start_pos)
 	read_last_range = read_start_range
 	ref_last_range = ref_start_range
-	for length, type in cigar_string.parseString(cigar):
+	try:
+		parse_results = cigar_string.parseString(cigar)
+	except ParseException:
+		logger.critical("Parse error for cigar string %s",cigar)
+		sys.exit(1)
+	for length, type in parse_results:
 		if type == "M":
 			read_current_range = (read_last_range[1], read_last_range[1] + length)
 			ref_current_range = (ref_last_range[1], ref_last_range[1] + length)
@@ -183,7 +190,7 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix,
 	global all_ranges
 
 	# sample some reads
-	sub_reads = aligned_reads.sample(n_reads)
+	sub_reads = aligned_reads.sample(n_reads,random_state=args.seed)
 
 	# compute reference coordinates using the CIGAR
 	all_ranges = []
@@ -198,9 +205,9 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix,
 	altered_reads = list(altered_reads_row.label)
 	non_altered_reads = set(all_ranges.label).difference(altered_reads)
 
-	# identify start and stop positions of reads that should be altered
-	ref_start = min([min(x) for x in altered_reads_row.ref_coord])
-	ref_end = max([max(x) for x in altered_reads_row.ref_coord])
+	# identify start and stop positions of reads that should be altered (with 10nt slack...)
+	ref_start = min([min(x) for x in altered_reads_row.ref_coord]) + 10
+	ref_end = max([max(x) for x in altered_reads_row.ref_coord]) - 10
 
 	# sample random alterations, reads that should be altered / kept as it
 	some_alterations = dict([random_alteration(ref_start, ref_end, weights=alterations_weight, multi_mismatch=multi_mismatch) for _ in range(n_alterations)])
@@ -232,9 +239,8 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix,
 			print >> f, "+"
 			print >> f, sub_reads.ix[read_label].QUAL
 			print >> f, "\n"
-	with open(output_file_prefix + ".alterations.txt", "w") as f:
-		for coord, alt in some_alterations.items():
-			print >> f, "\t".join(map(str, coord)) + " " + "\t".join(map(str, alt))
+	serialize_results(output_file_prefix, some_alterations)
+
 	logger.info("finished generation for %d reads, %d alterations, output files are", n_reads, n_alterations)
 	logger.info("%s: Original sampled reads", output_file_prefix + "_non_alt.fastq")
 	logger.info("%s: Altered sampled reads", output_file_prefix + ".fastq")
@@ -242,10 +248,34 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix,
 	logger.info("Alterations are %s", some_alterations)
 
 
+def serialize_results(output_file_prefix, some_alterations):
+	# prepare alterations for output
+	PROGRAMEND = time.time()
+	sampling_experiment = {}
+	described_alterations = []
+	for (start, end), (alt_type, alt_content, qual_content) in some_alterations.items():
+		described_alterations.append({
+			"start": start,
+			'end': end,
+			'alt_type': alt_type if alt_type != "M" else "X",  # for micado compatibility
+			"alt_content": alt_content,
+			"qual_string": qual_content,
+			"alt_length": len(alt_content) if alt_content else 0
+		})
+	sampling_experiment['exec_time'] = PROGRAMEND - PROGRAMSTART
+	sampling_experiment['parameters'] = vars(args)
+	sampling_experiment['injected_alterations'] = described_alterations
+	sampling_experiment['input_n_reads'] = len(aligned_reads)
+	sampling_experiment['git_revision_hash'] = get_git_revision_hash()
+	sampling_experiment['program_name'] = __file__
+	with open(output_file_prefix + ".alterations.json", "w") as f:
+		json.dump({"sampler":sampling_experiment}, f)
+
+
 def parse_sam_file(sam_file):
 	# sam_content = pd.DataFrame.from_csv(sam_file, sep="\t", header=5, index_col=None)
-	sam_content = pd.read_csv(sam_file, sep="\t", header=5, index_col=None,quotechar=u"±")
-	logger.info("Read %d lines SAM file",len(sam_content))
+	sam_content = pd.read_csv(sam_file, sep="\t", header=5, index_col=None, quotechar=u"±")
+	logger.info("Read %d lines SAM file", len(sam_content))
 	sam_columns = ["QNAME", "FLAG", "RNAME", "POS", "MAPQ", "CIGAR", "RNEXT", "PNEXT", "TLEN", "SEQ", "QUAL"]
 	this_columns = sam_columns + ["custom_%d" % i for i in range(len(sam_columns), sam_content.shape[1])]
 	sam_content.columns = this_columns
@@ -268,10 +298,13 @@ if __name__ == '__main__':
 	parser.add_argument('--systematic_offset', help='Systematically offset all reported reference coordinates by this value', required=False, type=int, default=0)
 	args = parser.parse_args()
 	# starting_file = data_dir + "/alignments/C_model_GMAPno40_NM_000546.5.sam"
-
+	PROGRAMSTART=time.time()
 	if not args.seed:
-		args.seed = time.time()
-	logger.info("Random seed is %d", args.seed)
+		args.seed = int(time.time())
+	else:
+		args.seed = int(args.seed)
+
+	logger.info("Random seed is %d[%s]", args.seed,type(args.seed))
 	random.seed(args.seed)
 	logger.info("Will parse input SAM")
 	aligned_reads = parse_sam_file(args.input_sam)

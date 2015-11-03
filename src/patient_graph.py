@@ -23,6 +23,7 @@ class PatientGraph:
 		self.alteration_list = []
 		self.dbg = nx.DiGraph()
 		self.dbgclean = None
+		self.n_reads = 0
 		self.kmer_start_set = set()
 		self.kmer_end_set = set()
 
@@ -31,6 +32,7 @@ class PatientGraph:
 			logger.info("Considering file %s for fastq %s", f, fastq_id)
 			comp = 0
 			for record_s in SeqIO.parse(f, "fastq", generic_dna):
+				self.n_reads+=1
 				sequence = str(record_s.seq)
 				comp += 1
 				# For tips search
@@ -172,8 +174,8 @@ class PatientGraph:
 								size_reference_path = len(reference_path)
 								size_curr_reference_path = len(curr_reference_path)
 								size_alternative_path = len(alternative_path)
-								delta_1 = abs (size_reference_path-size_alternative_path)
-								delta_2 = abs (size_curr_reference_path-size_alternative_path)
+								delta_1 = abs(size_reference_path - size_alternative_path)
+								delta_2 = abs(size_curr_reference_path - size_alternative_path)
 								if delta_2 < delta_1:
 									size_biggest_intersection = size_intersection
 									reference_path = curr_reference_path
@@ -217,11 +219,11 @@ class PatientGraph:
 				node_end = end_node
 				node_start = start_node
 
-	def significant_alteration_list_init(self):
+	def significant_alteration_list_init(self, p_value_threshold=0.001):
 		self.significant_alteration_list = []
 		for alteration in self.alteration_list:
 			# Pour avoir l'ensemble des paths dans signif alt list
-			if alteration.pvalue_ratio <= 0.001:
+			if alteration.pvalue_ratio <= p_value_threshold:
 				# if alteration.pvalue_ratio <= 1:
 				self.significant_alteration_list.append(alteration)
 

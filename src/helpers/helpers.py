@@ -25,9 +25,9 @@ def weighted_choice(choices):
 		upto += w
 	assert False, "Shouldn't get here"
 
-def get_timestamp():
-    return str(datetime.datetime.now()).replace(":", "_").replace(".", "_").replace("-", "_").replace(" ", "_")
 
+def get_timestamp():
+	return str(datetime.datetime.now()).replace(":", "_").replace(".", "_").replace("-", "_").replace(" ", "_")
 
 
 def time_iterator(an_iter, logger, delta_percent=0.01, msg_prefix=None, tot_items=None):
@@ -60,6 +60,16 @@ def get_or_create_dir(dirname):
 	if not os.path.isdir(dirname):
 		os.makedirs(dirname)
 	return dirname
+
+
+def get_git_revision_hash():
+	import subprocess
+	return subprocess.check_output(['git', 'rev-parse', 'HEAD']).strip()
+
+
+def get_git_revision_short_hash():
+	import subprocess
+	return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip()
 
 
 root_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', ))

@@ -18,6 +18,7 @@ def alteration_list_to_transcrit_mutation(g_test, g_ref):
 	for i_alteration in range(0, len(g_test.significant_alteration_list)):
 		# TODO substitute biopython global alignment by python difflib
 		# TODO allow for multiple mutation to be returned as non distinguishable, e.g. they are reported as being in the same group.
+		is_multi=False
 		curr_alteration = g_test.significant_alteration_list[i_alteration]
 		ref_seq = curr_alteration.reference_sequence
 		alt_seq = curr_alteration.alternative_sequence
@@ -52,7 +53,8 @@ def alteration_list_to_transcrit_mutation(g_test, g_ref):
 
 		if len(compact_cigard) != 6:
 			logger.critical("More than one alteration: for %s", compact_cigard)
-			continue
+			is_multi=True
+			# continue
 
 		alteration_type = compact_cigard[3]
 		# print g_ref.dbg.node[g_test.significant_alteration_list[i_alteration].reference_path[0]]['ref_list']
@@ -83,6 +85,10 @@ def alteration_list_to_transcrit_mutation(g_test, g_ref):
 
 		alteration_description = {
 			"splicing_variant": splicing_variant,
+			"compact_cigar":"".join(map(str,compact_cigard)),
+			"is_multi":is_multi,
+			"uncompact_cigar":uncompact_cigar,
+			"base_position":ref_path_list[splicing_variant],
 			"start": position,
 			"end": None,
 			'alt_sequence': None,
@@ -91,14 +97,14 @@ def alteration_list_to_transcrit_mutation(g_test, g_ref):
 			"pvalue_ratio": curr_alteration.pvalue_ratio,
 			"alt_read_count": curr_alteration.alternative_read_count,
 			"z_score": float(curr_alteration.zscore),
-
 		}
 
 		if alteration_type == "X":
 			# c.76A>T
 			if compact_cigard[2] != 1:
 				logger.critical("More than one alteration: for %s", compact_cigard)
-				continue
+				alteration_description['is_multi']=True
+				# continue
 			alteration = alt_seq[compact_cigard[0]:compact_cigard[0] + 1]
 			alteration_description['end'] = alteration_description['start']
 			alteration_description['alt_sequence'] = alteration

@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 # coding=utf8
 
-# python src/principal.py --samplekey 83_1 --fastq /Users/rudewicz/didac/DiDaC/data/fastq/all_pool_trimmed0.1/C_83_1.fastq,/Users/rudewicz/didac/DiDaC/data/fastq/all_pool_trimmed0.1/N_83_1.fastq --fasta /Users/rudewicz/didac/MICADo/data/reference/reference_TP53.fasta --snp /Users/rudewicz/didac/MICADo/data/reference/snp_TP53.tab  --kmer_length 20 --npermutations 100 --experiment TP53 
+# python src/principal.py --samplekey 83_1 --fastq /Users/rudewicz/didac/DiDaC/data/fastq/all_pool_trimmed0.1/C_83_1.fastq,/Users/rudewicz/didac/DiDaC/data/fastq/all_pool_trimmed0.1/N_83_1.fastq --fasta /Users/rudewicz/didac/MICADo/data/reference/reference_TP53.fasta --snp /Users/rudewicz/didac/MICADo/data/reference/snp_TP53.tab  --kmer_length 20 --npermutations 100 --experiment TP53
+import json
+from Bio import pairwise2
 
 import networkx as nx
 from argparse import ArgumentParser
-from helpers.helpers import time_iterator, get_or_create_dir, get_timestamp
+import time
+from forannotation import find_edit_operations
+from helpers.helpers import time_iterator, get_or_create_dir, get_timestamp, get_git_revision_hash
 from helpers.logger import init_logger
 import sys
 
@@ -20,11 +24,10 @@ from patient_graph import PatientGraph as PG
 logger.info("Import finished")
 
 
-def process_sample(kmer_length, min_support_percentage, n_permutations, sample_key=None, fastq_files=None, fasta_file=None, snp_file=None, experiment_name=None,
-				   destination_directory=".", export_gml=False):
+def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_threshold, sample_key=None, fastq_files=None, fasta_file=None, snp_file=None, experiment_name=None,
+				   destination_directory=".", export_gml=False, output_results=None):
 	if experiment_name == "TP53":
 		from randomreadsgraph_TP53 import RandomReadsGraph as RRG
-		import forannotation as ANNO
 	else:
 		from randomreadsgraph import RandomReadsGraph as RRG
 
@@ -41,7 +44,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, sample_k
 		logger.info("[Reference graph] Increasing k to %d to remove cycles", kmer_length)
 		return process_sample(kmer_length=kmer_length + 1, sample_key=sample_key, fastq_files=fastq_files, fasta_file=fasta_file, snp_file=snp_file,
 							  experiment_name=experiment_name, min_support_percentage=min_support_percentage, n_permutations=n_permutations,
-							  destination_directory=destination_directory, export_gml=export_gml)
+							  destination_directory=destination_directory, export_gml=export_gml, p_value_threshold=p_value_threshold, output_results=output_results)
 
 	# g_patient construction
 	logger.info("Will build patient graph for %s with k==%d and minimum support = %dpct", fastq_files, kmer_length, min_support_percentage)
@@ -60,7 +63,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, sample_k
 		logger.info("[Sample graph] Increasing k to %d to remove cycles", kmer_length)
 		return process_sample(kmer_length=kmer_length + 1, sample_key=sample_key, fastq_files=",".join(fastq_files), fasta_file=fasta_file, snp_file=snp_file,
 							  experiment_name=experiment_name, min_support_percentage=min_support_percentage, n_permutations=n_permutations,
-							  destination_directory=destination_directory, export_gml=export_gml)
+							  destination_directory=destination_directory, export_gml=export_gml, p_value_threshold=p_value_threshold, output_results=output_results)
 
 	# Some prints for stats 
 	dir_stat = get_or_create_dir("output/statistics")
@@ -118,7 +121,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, sample_k
 	for i_alteration in range(0, len(g_patient.alteration_list)):
 		g_patient.alteration_list[i_alteration].pvalue_init()
 
-	g_patient.significant_alteration_list_init()
+	g_patient.significant_alteration_list_init(p_value_threshold=p_value_threshold)
 
 	# If more than one significant alteration, check if they are not in "spike" (en épis)
 	if len(g_patient.significant_alteration_list) > 1:
@@ -171,16 +174,8 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, sample_k
 
 	# Annotation
 	if experiment_name == "TP53":
-		anntotated_alterations = ANNO.alteration_list_to_transcrit_mutation(g_patient, g_reference)
-		# add experiment arguments
-		this_timestamp=get_timestamp()
-		for d in anntotated_alterations:
-			d['timestamp']=this_timestamp
-			d.update(vars(args))
-
-		print anntotated_alterations
-
-	# SNP 
+		annotate_and_output_results(g_patient, g_reference, output_results)
+	# SNP
 	dir_stat = get_or_create_dir("output/snp")
 	# graph stat
 	graph_snp = open(dir_stat + "/snp_" + sample_key + ".tsv", 'w')
@@ -193,7 +188,45 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, sample_k
 				graph_snp.write("%s\t%s\t0\t%d\n" % (sample_key, snp_id, len(g_patient.dbg.node[g_reference.snp[snp_id][1]]['read_list_n'])))
 
 
+def annotate_and_output_results(g_patient, g_reference, output_results):
+	import forannotation as ANNO
+	annotated_alterations = ANNO.alteration_list_to_transcrit_mutation(g_patient, g_reference)
+	# add experiment arguments
+	PROGRAMEND = time.time()
+	experiment_description = {}
+	this_timestamp = get_timestamp()
+	experiment_description['timestamp'] = this_timestamp
+	experiment_description['exec_time'] = PROGRAMEND - PROGRAMSTART
+	experiment_description['parameters'] = vars(args)
+	experiment_description['n_reads'] = g_patient.n_reads
+	experiment_description['git_revision_hash'] = get_git_revision_hash()
+
+	experiment_description['significant_alterations'] = annotated_alterations
+	experiment_description['graphs'] = {
+		"coverage_total": g_patient.coverage['total'],
+		"before_cleaning": len(g_patient.dbg),
+		"after_clearning": len(g_patient.dbgclean)
+	}
+	experiment_description['all_alterations'] = []
+	for x in g_patient.alteration_list:
+		alteration_description = x.__dict__
+		del alteration_description['reference_path']
+		del alteration_description['alternative_path']
+		del alteration_description['random_alternative_count_list']
+		del alteration_description['random_reference_count_list']
+		del alteration_description['random_ratio_list']
+		alteration_description['edit_operations'] = find_edit_operations(x.reference_sequence, x.alternative_sequence)
+		alteration_description['alignment'] = pairwise2.align.globalms(x.reference_sequence, x.alternative_sequence, 2, -3, -5, -2)[0]
+		experiment_description['all_alterations'].append(alteration_description)
+	print json.dumps(experiment_description)
+	if output_results:
+		with open(output_results, "w") as f:
+			json.dump(experiment_description, f)
+
+
 if __name__ == "__main__":
+	global PROGRAMSTART
+	PROGRAMSTART = time.time()
 	parser = ArgumentParser()
 	parser.add_argument('--kmer_length', help='Size of k-mer words', default=20, type=int, required=False)
 	parser.add_argument('--fastq', help='FASTQ files to analyse (sep="," ; with all the path)', required=False, type=str)
@@ -205,6 +238,8 @@ if __name__ == "__main__":
 	parser.add_argument('--npermutations', help="number of permutations / random samples to perform", default=1000, type=int, required=False)
 	parser.add_argument("--destdir", help="Output directory", default="output/gml", type=str, required=False)
 	parser.add_argument("--export", help="Whether to export graphs to GML", action='store_true')
+	parser.add_argument("--pvalue", help="P value threshold for significance", type=float, default=0.001)
+	parser.add_argument("--results", help="Output (as JSON) results file  ", type=str, default=None)
 
 	args = parser.parse_args()
 
@@ -218,5 +253,7 @@ if __name__ == "__main__":
 		n_permutations=args.npermutations,
 		sample_key=args.samplekey,
 		destination_directory=args.destdir,
-		export_gml=args.export
+		export_gml=args.export,
+		p_value_threshold=args.pvalue,
+		output_results=args.results
 	)
