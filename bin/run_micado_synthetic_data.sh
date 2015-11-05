@@ -8,7 +8,7 @@ SAMPLENAME=data/synthetic/C_test2
 # build a sample
 python src/read_sampler/altered_reads_sampler.py --input_sam "data/alignments/C_model_GMAPno40_NM_000546.5.sam" \
             --output_file_prefix "${SAMPLENAME}" \
-            --n_reads 500 --fraction_altered 0.1 --n_alterations 3 --alt_weight 1,1,1 \
+            --n_reads 500 --fraction_altered 0.1 --n_alterations 5 --alt_weight 0,1,0 \
             --systematic_offset -202
 # analyse it
 # perform the gmap alignment (just in case )
@@ -19,5 +19,7 @@ python src/principal.py --fastq ${SAMPLENAME}.fastq --experiment TP53 --fasta da
 
 # merge known alterations and identified alterations
 bin/merge_json_objects.py ${SAMPLENAME}.alterations.json ${SAMPLENAME}.significant_alterations.json > ${SAMPLENAME}.combined.alterations.json
+
+jq < ${SAMPLENAME}.combined.alterations.json
 
 

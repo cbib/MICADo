@@ -92,11 +92,13 @@ def alteration_list_to_transcrit_mutation(g_test, g_ref):
 			"start": position,
 			"end": None,
 			'alt_sequence': None,
+			"n_alterations":len([x for x in uncompact_cigar if x!="M"]),
 			"reference_sequence": reference_sequence,
 			"alt_type": alteration_type,
 			"pvalue_ratio": curr_alteration.pvalue_ratio,
 			"alt_read_count": curr_alteration.alternative_read_count,
 			"z_score": float(curr_alteration.zscore),
+			"alignment":alignments[0]
 		}
 
 		if alteration_type == "X":

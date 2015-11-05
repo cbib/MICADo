@@ -1,5 +1,6 @@
 # coding=utf-8
 from argparse import ArgumentParser
+import collections
 import json
 import random
 import pandas as pd
@@ -48,7 +49,7 @@ def coordinate_map(an_alignment_row):
 	try:
 		parse_results = cigar_string.parseString(cigar)
 	except ParseException:
-		logger.critical("Parse error for cigar string %s",cigar)
+		logger.critical("Parse error for cigar string %s", cigar)
 		sys.exit(1)
 	for length, type in parse_results:
 		if type == "M":
@@ -78,7 +79,7 @@ def random_alteration(start, end, weights, multi_mismatch=False):
 		a_length = 1
 	else:
 		a_length = random.randint(1, 5)
-	a_content = "".join([random.choice("actg") for _ in range(a_length)])
+	a_content = "".join([random.choice(random_nt) for _ in range(a_length)])
 	a_qual = "q" * a_length
 	# TODO parameter to force mismatches to be of length 1 or 2 (more realistic)
 	if a_type == "D":
@@ -190,7 +191,7 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix,
 	global all_ranges
 
 	# sample some reads
-	sub_reads = aligned_reads.sample(n_reads,random_state=args.seed)
+	sub_reads = aligned_reads.sample(n=n_reads, random_state=args.seed, replace=False)
 
 	# compute reference coordinates using the CIGAR
 	all_ranges = []
@@ -201,9 +202,10 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix,
 	all_ranges.set_index("label", inplace=True, drop=False)
 
 	# sample altered reads
-	altered_reads_row = all_ranges.sample(int(len(sub_reads) * fraction_altered))
-	altered_reads = list(altered_reads_row.label)
-	non_altered_reads = set(all_ranges.label).difference(altered_reads)
+	altered_reads_labels = sub_reads.QNAME.sample(int(len(sub_reads) * fraction_altered), random_state=args.seed, replace=False)
+	altered_reads_row = all_ranges.ix[altered_reads_labels]
+	non_altered_reads_labels = set(sub_reads.QNAME).difference(altered_reads_labels)
+	assert set(altered_reads_labels).isdisjoint(set(non_altered_reads_labels))
 
 	# identify start and stop positions of reads that should be altered (with 10nt slack...)
 	ref_start = min([min(x) for x in altered_reads_row.ref_coord]) + 10
@@ -224,16 +226,22 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix,
 			print >> f, "\n"
 
 	# generate altered reads fastq files
+	output_reads = set()
 	with open(output_file_prefix + ".fastq", "w") as f:
 
-		for i, read_label in time_iterator(altered_reads, logger, msg_prefix="Generating altered fastq, altered reads", delta_percent=0.1):
+		for i, read_label in time_iterator(altered_reads_labels, logger, msg_prefix="Generating altered fastq, altered reads", delta_percent=0.1):
+			assert read_label not in output_reads
+			output_reads.add(read_label)
 			print >> f, "@%s" % (clean_label(read_label)) + "_ALT"
 			print >> f, "".join(mutating_sequence_iterator(read_label=read_label, alterations=some_alterations))
 			print >> f, "+"
 			print >> f, "".join(mutating_sequence_iterator(read_label=read_label, alterations=some_alterations, output="qual"))
 			print >> f, "\n"
 
-		for i, read_label in time_iterator(non_altered_reads, logger, msg_prefix="Generating altered fastq, non altered reads", delta_percent=0.1):
+		for i, read_label in time_iterator(non_altered_reads_labels, logger, msg_prefix="Generating altered fastq, non altered reads", delta_percent=0.1):
+			assert read_label not in output_reads
+			output_reads.add(read_label)
+
 			print >> f, "@%s" % (clean_label(read_label)) + "_ORIG"
 			print >> f, sub_reads.ix[read_label].SEQ
 			print >> f, "+"
@@ -269,7 +277,7 @@ def serialize_results(output_file_prefix, some_alterations):
 	sampling_experiment['git_revision_hash'] = get_git_revision_hash()
 	sampling_experiment['program_name'] = __file__
 	with open(output_file_prefix + ".alterations.json", "w") as f:
-		json.dump({"sampler":sampling_experiment}, f)
+		json.dump({"sampler": sampling_experiment}, f)
 
 
 def parse_sam_file(sam_file):
@@ -284,37 +292,47 @@ def parse_sam_file(sam_file):
 
 
 if __name__ == '__main__':
-	global args
+	global args,random_nt
 	parser = ArgumentParser()
 	parser.add_argument('--n_reads', help='Number of reads for the generated sample', default=500, type=int, required=False)
 	parser.add_argument('--fraction_altered', help='Fraction (between 0 and 1) of reads that should have recurrent alterations', required=False, type=float, default=0.1)
 	parser.add_argument('--n_alterations', help='Number of alterations to insert', required=False, type=int, default=1)
 	parser.add_argument('--output_file_prefix', help='output file prefix', required=True, type=str)
 	parser.add_argument('--input_sam', help='Input SAM file', required=True, type=str)
-	parser.add_argument('--alt_weight', help='Comma separated weights for alterations, in order:insertions, mismatches and deletions', required=False, type=str, default="1,1,1")
+	parser.add_argument('--alt_weight', help='Comma or "-" separated weights for alterations, in order:insertions, mismatches and deletions', required=False, type=str, default="1,1,1")
 	parser.add_argument('--max_len', help='Max INDEL length', required=False, type=int, default=5)
 	parser.add_argument('--seed', help='Random seed to use, by default: system time in seconds.', required=False, type=int, default=None)
 	parser.add_argument('--multi_mismatch', help='Allow for mismatches over multiple nt', required=False, action='store_true')
+	parser.add_argument('--output_lowercase', help='Output altered bases in lowercase', required=False, action='store_true')
 	parser.add_argument('--systematic_offset', help='Systematically offset all reported reference coordinates by this value', required=False, type=int, default=0)
 	args = parser.parse_args()
 	# starting_file = data_dir + "/alignments/C_model_GMAPno40_NM_000546.5.sam"
-	PROGRAMSTART=time.time()
+	PROGRAMSTART = time.time()
 	if not args.seed:
 		args.seed = int(time.time())
 	else:
 		args.seed = int(args.seed)
 
-	logger.info("Random seed is %d[%s]", args.seed,type(args.seed))
+
+	logger.info("Random seed is %d[%s]", args.seed, type(args.seed))
 	random.seed(args.seed)
 	logger.info("Will parse input SAM")
 	aligned_reads = parse_sam_file(args.input_sam)
+	logger.info("Parsed %d reads from the input SAM file", len(aligned_reads))
 	logger.info("Starting reads generation")
 	MAX_LEN = args.max_len
 	all_ranges = None
 
+	if args.output_lowercase:
+		random_nt="actg"
+	else:
+		random_nt="ACTG"
 	# parse alteration weight
 	try:
-		alt_weights = map(float, args.alt_weight.split(","))
+		if "-" in args.alt_weight:
+			alt_weights = map(float, args.alt_weight.split("-"))
+		else:
+			alt_weights = map(float, args.alt_weight.split(","))
 		assert len(alt_weights) == 3, "3 comma separated weights should be provided"
 	except:
 		raise SyntaxError
