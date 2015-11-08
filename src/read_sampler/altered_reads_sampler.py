@@ -3,13 +3,15 @@ from argparse import ArgumentParser
 import collections
 import json
 import random
+import itertools
 import pandas as pd
-from pyparsing import Word, OneOrMore, Group, ParseException
 import time
 import sys
+from pyparsing import ParseException
 from helpers import helpers
 from helpers.logger import init_logger
 from helpers.helpers import time_iterator, get_git_revision_hash
+from read_sampler.cigar_parser import parse_cigar_string
 
 pd.set_option('display.width', 250)
 
@@ -17,23 +19,6 @@ __author__ = 'hayssam'
 
 logger = init_logger(name="READSAMPLER")
 
-
-##### pyparsing based cigar parser
-def convertIntegers(tokens):
-	return int(tokens[0])
-
-
-alt_type_tokens = "SIMD"
-digits = "0123456789"
-an_alt = Word(alt_type_tokens)
-alt_length = Word(digits).setParseAction(convertIntegers)
-alt_and_length = Group(alt_length + an_alt)
-cigar_string = OneOrMore(alt_and_length)
-
-
-# Exemple usage:
-# cigar_string.parseString("76M1I257M1I22M1I99M")
-# % timeit cigar_string.parseString("76M1I257M1I22M1I99M")[1]
 
 # convert coordinates
 def coordinate_map(an_alignment_row):
@@ -47,10 +32,10 @@ def coordinate_map(an_alignment_row):
 	read_last_range = read_start_range
 	ref_last_range = ref_start_range
 	try:
-		parse_results = cigar_string.parseString(cigar)
+		parse_results = parse_cigar_string(cigar)
 	except ParseException:
 		logger.critical("Parse error for cigar string %s", cigar)
-		sys.exit(1)
+		return []
 	for length, type in parse_results:
 		if type == "M":
 			read_current_range = (read_last_range[1], read_last_range[1] + length)
@@ -185,6 +170,15 @@ def clean_label(lbl):
 	return lbl.replace("/", "_")
 
 
+def min_dist(int_list):
+	_min_dist = int_list[0]
+	for pair in itertools.izip(int_list, int_list[1:]):
+		this_dist = abs(pair[0] - pair[1])
+		if this_dist < _min_dist:
+			_min_dist = abs(pair[0] - pair[1])
+	return _min_dist
+
+
 def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix, alterations_weight=None, multi_mismatch=False):
 	if not alterations_weight:
 		alterations_weight = [1.0, 1.0, 1.0]
@@ -212,9 +206,24 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix,
 	ref_end = max([max(x) for x in altered_reads_row.ref_coord]) - 10
 
 	# sample random alterations, reads that should be altered / kept as it
-	some_alterations = dict([random_alteration(ref_start, ref_end, weights=alterations_weight, multi_mismatch=multi_mismatch) for _ in range(n_alterations)])
+	alterations_modify_content = False
+	max_try = 100
+	i = 0
+	while (not alterations_modify_content) and (i < max_try):
+		some_alterations = dict([random_alteration(ref_start, ref_end, weights=alterations_weight, multi_mismatch=multi_mismatch) for _ in range(n_alterations)])
+		# check that artificial alterations actually modify reads (case of generating a substitution corresponding to the actual content of the read)
+		a_label = random.choice(altered_reads_labels)
+		altered_sequence = "".join(mutating_sequence_iterator(read_label=a_label, alterations=some_alterations))
+		non_altered_sequence = sub_reads.ix[a_label].SEQ
+		if min_dist([x[0] for x in some_alterations])<=20:
+			logger.info("Alterations %s are too close, iterating", some_alterations)
+		elif altered_sequence != non_altered_sequence:
+			alterations_modify_content = True
+		else:
+			logger.info("Alterations %s correspond to the real read content, iterating", some_alterations)
+		i += 1
 
-	logger.info("Generated alterations")
+	logger.info("Generated alterations %s after %d trial", some_alterations, i)
 
 	# generate original reads
 	with open(output_file_prefix + "_non_alt.fastq", "w") as f:
@@ -292,14 +301,15 @@ def parse_sam_file(sam_file):
 
 
 if __name__ == '__main__':
-	global args,random_nt
+	global args, random_nt
 	parser = ArgumentParser()
 	parser.add_argument('--n_reads', help='Number of reads for the generated sample', default=500, type=int, required=False)
 	parser.add_argument('--fraction_altered', help='Fraction (between 0 and 1) of reads that should have recurrent alterations', required=False, type=float, default=0.1)
 	parser.add_argument('--n_alterations', help='Number of alterations to insert', required=False, type=int, default=1)
 	parser.add_argument('--output_file_prefix', help='output file prefix', required=True, type=str)
 	parser.add_argument('--input_sam', help='Input SAM file', required=True, type=str)
-	parser.add_argument('--alt_weight', help='Comma or "-" separated weights for alterations, in order:insertions, mismatches and deletions', required=False, type=str, default="1,1,1")
+	parser.add_argument('--alt_weight', help='Comma or "-" separated weights for alterations, in order:insertions, mismatches and deletions', required=False, type=str,
+						default="1,1,1")
 	parser.add_argument('--max_len', help='Max INDEL length', required=False, type=int, default=5)
 	parser.add_argument('--seed', help='Random seed to use, by default: system time in seconds.', required=False, type=int, default=None)
 	parser.add_argument('--multi_mismatch', help='Allow for mismatches over multiple nt', required=False, action='store_true')
@@ -313,7 +323,6 @@ if __name__ == '__main__':
 	else:
 		args.seed = int(args.seed)
 
-
 	logger.info("Random seed is %d[%s]", args.seed, type(args.seed))
 	random.seed(args.seed)
 	logger.info("Will parse input SAM")
@@ -324,9 +333,9 @@ if __name__ == '__main__':
 	all_ranges = None
 
 	if args.output_lowercase:
-		random_nt="actg"
+		random_nt = "actg"
 	else:
-		random_nt="ACTG"
+		random_nt = "ACTG"
 	# parse alteration weight
 	try:
 		if "-" in args.alt_weight:

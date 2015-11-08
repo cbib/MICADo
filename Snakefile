@@ -1,11 +1,22 @@
+
 import random
+#                frac=["03",'035','040','045',"05","10","30","50"])
+rule specific:
+    input:expand("data/synthetic/C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1.combined_alterations.json data/synthetic/C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1_C_model_GMAPno40.sorted.bam".split(),\
+                seed=[9584],\
+                nreads=1000,\
+                nalt=[2],\
+                alt_type=['1-1-1'],\
+                frac=['50'])
+
 rule all:
     input:expand("data/synthetic/C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1.combined_alterations.json",\
-                seed=random.sample(range(10000),k=1),\
-                nreads=[150,500,1000],\
+                seed=random.sample(range(10000),k=8),\
+                nreads=[150,500,700,1000],\
                 nalt=[1,2,3],\
                 alt_type=['1-1-1','1-1-0','0-1-1'],\
-                frac=["03","05","10","30","50"])
+                frac=['035','040','045',"05","10","50"])
+
 
 
 rule clean:
@@ -18,7 +29,8 @@ rule clean:
     """
 
 rule run_micado:
-    input : fasta_ref="data/reference/reference_TP53.fasta",\
+    priority :2
+    input : fasta_ref="data/reference/reference_TP53_C.fasta",\
             random_sample="data/synthetic/{sample}.fastq",\
             snp_data="data/reference/snp_TP53.tab"
     params : sample_name= "data/synthetic/{sample}"
@@ -58,15 +70,17 @@ rule generate_sample:
                     --output_file_prefix "{params.sample_name}" \
                     --n_reads {wildcards.nreads} --fraction_altered 0.{wildcards.frac} --n_alterations {wildcards.nalt} --alt_weight {wildcards.altw} \
                     --seed {wildcards.seed} \
+                    # --output_lowercase \
                     --systematic_offset -202
 
     """
 rule combine_json :
+    priority : 50
     input : micado_results="data/synthetic/{sample}.significant_alterations.json",\
             sampler_results="data/synthetic/{sample}.alterations.json"
 
     output:combined_json=temp("data/synthetic/{sample}.combined_alterations.temp.json"),
-           cleaned_json="data/synthetic/{sample}.combined_alterations.json"
+           cleaned_json="data/synthetic/{sample}.combined_alterations.json" # we move them outside
     shell:"""
         # merge known alterations and identified alterations
         source ~/.virtualenvs/micado/bin/activate
