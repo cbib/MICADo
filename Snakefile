@@ -1,6 +1,27 @@
 
 import random
-#                frac=["03",'035','040','045',"05","10","30","50"])
+
+rule STAR_align_synth_1:
+    input: "alignments/data/synthetic/C_FOOFOO_111_500_50_1_1-1-1.bam"
+
+rule STAR_align_synth:
+    input: star_index="STAR_idx/SAindex",reads="data/synthetic/C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1.fastq"
+    params:
+        sample_name= "C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1",\
+        sorted_bam_prefix = "alignments/data/synthetic/C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1.sorted"
+    output: sam="alignments/data/synthetic/C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1.sam",\
+            bam="alignments/data/synthetic/C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1.bam", \
+            sorted_bam="alignments/data/synthetic/C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1.sorted.bam",\
+            indexed_bam="alignments/data/synthetic/C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1.sorted.bam.bai"
+
+    shell:"""
+        ./bin/STAR --genomeDir STAR_idx --readFilesIn {input.reads} --outFileNamePrefix alignments/
+        mv alignments/Aligned.out.sam {output.sam}
+        samtools view -b -S {output.sam} > {output.bam}
+        samtools sort {output.bam} {params.sorted_bam_prefix}
+        samtools index {output.sorted_bam}
+     """
+
 rule specific:
     input:expand("data/synthetic/C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1.combined_alterations.json data/synthetic/C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1_C_model_GMAPno40.sorted.bam".split(),\
                 seed=[7004],\
@@ -8,38 +29,6 @@ rule specific:
                 nalt=[1],\
                 alt_type=['1-1-1'],\
                 frac=['50'])
-#
-#rule alteration_files:
-#    input:expand("data/alterations/synthetic/C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1.txt",\
-#                seed=random.sample(range(10000),k=25),\
-#                nreads=[150,500,700,1000],\
-#                nalt=[1],\
-#                frac=['035','040','045',"05","10","50"])
-#rule generate_alterations:
-#    input:input_sam="data/alignments/C_model_GMAPno40_NM_000546.5.sam"
-#    params:
-#            sample_name="data/synthetic/{sample}_{seed}_{nreads}_{frac}_{nalt}_{altw}"
-#    log : "exec_logs/sampler_log_{sample}_{seed}_{nreads}_{frac}_{nalt}_{altw}.txt"
-#    output: alteration_file="data/alterations/synthetic/{sample}_{seed,\d+}_{nreads,\d+}_{frac,\d+}_{nalt,\d+}_{altw}.txt"
-#    shell:"""
-#        source ~/.virtualenvs/micado/bin/activate
-#        export PYTHONPATH=`pwd`/src
-#
-#        # build a sample
-#        /usr/bin/time -l python src/read_sampler/altered_reads_sampler.py --input_sam {input.input_sam}  \
-#                    --output_file_prefix "{params.sample_name}" \
-#                    --n_reads {wildcards.nreads} --fraction_altered 0.{wildcards.frac} --n_alterations {wildcards.nalt} --alt_weight {wildcards.altw} \
-#                    --seed {wildcards.seed} \
-#                    --do_not_output_reads \
-#                     --systematic_offset -202 2> {log} >> {output.alteration_file}
-#    """
-
-rule ComblerTrou:
-    input:expand("data/synthetic/C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1.combined_alterations.json",\
-                seed=random.sample(range(10000),k=25),\
-                nreads=[150,500,700,1000],\
-                nalt=[1],\
-                frac=['035','040','045',"05","10","50"])
 
 rule all:
     input:expand("data/synthetic/C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1.combined_alterations.json",\

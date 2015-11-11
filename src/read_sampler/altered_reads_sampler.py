@@ -218,7 +218,7 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix,
 			print >> f, sub_reads.ix[read_label].SEQ
 			print >> f, "+"
 			print >> f, sub_reads.ix[read_label].QUAL
-			print >> f, "\n"
+			# print >> f, "\n"
 
 	# generate altered reads fastq files
 	output_reads = set()
@@ -231,7 +231,7 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix,
 			print >> f, "".join(mutating_sequence_iterator(read_label=read_label, alterations=some_alterations))
 			print >> f, "+"
 			print >> f, "".join(mutating_sequence_iterator(read_label=read_label, alterations=some_alterations, output="qual"))
-			print >> f, "\n"
+			# print >> f, "\n"
 
 		for i, read_label in time_iterator(non_altered_reads_labels, logger, msg_prefix="Generating altered fastq, non altered reads", delta_percent=0.1):
 			assert read_label not in output_reads
@@ -241,7 +241,7 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix,
 			print >> f, sub_reads.ix[read_label].SEQ
 			print >> f, "+"
 			print >> f, sub_reads.ix[read_label].QUAL
-			print >> f, "\n"
+			# print >> f, "\n"
 	serialize_results(output_file_prefix, some_alterations)
 
 	logger.info("finished generation for %d reads, %d alterations, output files are", n_reads, n_alterations)
