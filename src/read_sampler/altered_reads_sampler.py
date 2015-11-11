@@ -173,6 +173,8 @@ def clean_label(lbl):
 
 
 def min_dist(int_list):
+	if len(int_list)==0:
+		return None
 	_min_dist = int_list[0]
 	for pair in itertools.izip(int_list, int_list[1:]):
 		this_dist = abs(pair[0] - pair[1])
@@ -205,8 +207,10 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_reads_prefix
 
 	# pick a random label to test alterations
 	a_label = random.choice(altered_reads_labels)
-
-	some_alterations = generate_alterations(a_label, alterations_weight, altered_read_rows, multi_mismatch, n_alterations, sub_reads)
+	if n_alterations>0:
+		some_alterations = generate_alterations(a_label, alterations_weight, altered_read_rows, multi_mismatch, n_alterations, sub_reads)
+	else:
+		some_alterations={}
 
 	if args.do_not_output_reads:
 		return some_alterations
