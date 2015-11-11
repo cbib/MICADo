@@ -219,7 +219,7 @@ def annotate_and_output_results(g_patient, g_reference, output_results):
 		alteration_description['edit_operations'] = find_edit_operations(x.reference_sequence, x.alternative_sequence)
 		alteration_description['alignment'] = pairwise2.align.globalms(x.reference_sequence, x.alternative_sequence, 2, -3, -5, -2)[0]
 		experiment_description['all_alterations'].append(alteration_description)
-	print json.dumps(experiment_description)
+	# print json.dumps(experiment_description)
 	if output_results:
 		with open(output_results, "w") as f:
 			json.dump(experiment_description, f)
