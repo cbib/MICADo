@@ -22,34 +22,12 @@ def alteration_list_to_transcrit_mutation(g_test, g_ref):
 		curr_alteration = g_test.significant_alteration_list[i_alteration]
 		ref_seq = curr_alteration.reference_sequence
 		alt_seq = curr_alteration.alternative_sequence
-		# logger.info("Will perform alignment between \n %s \n %s", ref_seq, alt_seq)
 		alignments = pairwise2.align.globalms(ref_seq, alt_seq, 2, -3, -5, -2)
-		# if more than one alignment, choose the one which with the alteration at the left in the genome
 		if len(alignments) > 1:
-			# logger.critical("More than one alignment for %s vs %s", g_test.significant_alteration_list[i_alteration].reference_sequence,g_test.significant_alteration_list[i_alteration].alternative_sequence) 
+			# logger.critical("More than one alignment for %s vs %s", g_test.significant_alteration_list[i_alteration].reference_sequence,g_test.significant_alteration_list[i_alteration].alternative_sequence)
 			alignments = [alignments[0]]
-		uncompact_cigar = ""
-		compact_cigard = []
-		for i_nucleotide in range(0, alignments[0][4]):
-			if alignments[0][0][i_nucleotide] == alignments[0][1][i_nucleotide]:
-				uncompact_cigar += "M"
-			elif alignments[0][0][i_nucleotide] == "-":
-				uncompact_cigar += "I"
-			elif alignments[0][1][i_nucleotide] == "-":
-				uncompact_cigar += "D"
-			else:
-				uncompact_cigar += "X"
-		# print uncompact_cigar
-		operation = uncompact_cigar[0]
-		count = 0
-		for i_nucleotide in range(0, len(uncompact_cigar)):
-			if uncompact_cigar[i_nucleotide] != operation:
-				compact_cigard += [count, operation]
-				operation = uncompact_cigar[i_nucleotide]
-				count = 0
-			count += 1
-		compact_cigard += [count, operation]
-		# print compact_cigard
+
+		compact_cigard, uncompact_cigar = compute_cigar_string(alignments)
 
 		if len(compact_cigard) != 6:
 			logger.critical("More than one alteration: for %s", compact_cigard)
@@ -68,10 +46,10 @@ def alteration_list_to_transcrit_mutation(g_test, g_ref):
 		elif "NM_001126113.2" in ref_path_list:
 			splicing_variant = "NM_001126113.2"
 		position = ref_path_list[splicing_variant] + compact_cigard[0]
+		base_position = ref_path_list[splicing_variant]
+
 		if re.match("rs", splicing_variant):
 			reference_sequence = ""
-			# print splicing_variant
-			# print compact_cigard
 			# print g_ref.nt_ref[splicing_variant]
 			for i_pos in range(0, compact_cigard[2]):
 				if position + i_pos not in g_ref.nt_ref[splicing_variant]:
@@ -88,7 +66,7 @@ def alteration_list_to_transcrit_mutation(g_test, g_ref):
 			"compact_cigar":"".join(map(str,compact_cigard)),
 			"is_multi":is_multi,
 			"uncompact_cigar":uncompact_cigar,
-			"base_position":ref_path_list[splicing_variant],
+			"base_position":base_position,
 			"start": position,
 			"end": None,
 			'alt_sequence': None,
@@ -136,6 +114,33 @@ def alteration_list_to_transcrit_mutation(g_test, g_ref):
 				float(curr_alteration.zscore))
 
 	return annotated_alterations
+
+
+def compute_cigar_string(alignments):
+	uncompact_cigar = ""
+	compact_cigard = []
+	for i_nucleotide in range(0, alignments[0][4]):
+		if alignments[0][0][i_nucleotide] == alignments[0][1][i_nucleotide]:
+			uncompact_cigar += "M"
+		elif alignments[0][0][i_nucleotide] == "-":
+			uncompact_cigar += "I"
+		elif alignments[0][1][i_nucleotide] == "-":
+			uncompact_cigar += "D"
+		else:
+			uncompact_cigar += "X"
+	# print uncompact_cigar
+	operation = uncompact_cigar[0]
+	count = 0
+	for i_nucleotide in range(0, len(uncompact_cigar)):
+		if uncompact_cigar[i_nucleotide] != operation:
+			compact_cigard += [count, operation]
+			operation = uncompact_cigar[i_nucleotide]
+			count = 0
+		count += 1
+	compact_cigard += [count, operation]
+	# print compact_cigard
+	return compact_cigard, uncompact_cigar
+
 
 def splicing_variant_converter(spv):
 	if spv not in ["NM_000546.5", "NM_001126114.2", "NM_001126113.2"]:

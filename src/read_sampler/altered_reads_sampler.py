@@ -1,6 +1,7 @@
 # coding=utf-8
 from argparse import ArgumentParser
 import collections
+from operator import itemgetter
 import pprint as pp
 import json
 import random
@@ -59,7 +60,6 @@ def coordinate_map(an_alignment_row):
 def random_alteration(start, end, weights, multi_mismatch=False):
 	# sample a position, alt type, length and content
 	a_pos = random.randint(start, end - MAX_LEN)
-	print "POS:", a_pos
 	a_type = helpers.weighted_choice(zip("IMD", weights))
 
 	if a_type == "M" and not multi_mismatch:
@@ -253,6 +253,7 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_reads_prefix
 	logger.info("%s: Altered sampled reads", output_reads_prefix + ".fastq")
 	logger.info("%s: Alterations description", output_result_prefix + ".alterations.txt")
 	logger.info("Alterations are %s", some_alterations)
+	pp.pprint(sorted(some_alterations.items(),key=lambda (pos,alt):pos[0]))
 
 
 def generate_alterations(a_label, alterations_weight, altered_reads_row, multi_mismatch, n_alterations, sub_reads):
