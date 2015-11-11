@@ -59,7 +59,7 @@ def coordinate_map(an_alignment_row):
 def random_alteration(start, end, weights, multi_mismatch=False):
 	# sample a position, alt type, length and content
 	a_pos = random.randint(start, end - MAX_LEN)
-	print "POS:",a_pos
+	print "POS:", a_pos
 	a_type = helpers.weighted_choice(zip("IMD", weights))
 
 	if a_type == "M" and not multi_mismatch:
@@ -181,7 +181,7 @@ def min_dist(int_list):
 	return _min_dist
 
 
-def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix, alterations_weight=None, multi_mismatch=False):
+def build_a_sample(n_reads, fraction_altered, n_alterations, output_reads_prefix, output_result_prefix, alterations_weight=None, multi_mismatch=False):
 	if not alterations_weight:
 		alterations_weight = [1.0, 1.0, 1.0]
 	global all_ranges
@@ -212,17 +212,17 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix,
 		return some_alterations
 
 	# generate original reads
-	with open(output_file_prefix + "_non_alt.fastq", "w") as f:
+	with open(output_reads_prefix + "_non_alt.fastq", "w") as f:
 		for i, read_label in time_iterator(sub_reads.QNAME, logger, msg_prefix="Generating non altered fastq, non altered reads", delta_percent=0.1):
 			print >> f, "@%s" % (clean_label(read_label)) + "_ORIG"
 			print >> f, sub_reads.ix[read_label].SEQ
 			print >> f, "+"
 			print >> f, sub_reads.ix[read_label].QUAL
-			# print >> f, "\n"
+		# print >> f, "\n"
 
 	# generate altered reads fastq files
 	output_reads = set()
-	with open(output_file_prefix + ".fastq", "w") as f:
+	with open(output_reads_prefix + ".fastq", "w") as f:
 
 		for i, read_label in time_iterator(altered_reads_labels, logger, msg_prefix="Generating altered fastq, altered reads", delta_percent=0.1):
 			assert read_label not in output_reads
@@ -231,7 +231,7 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix,
 			print >> f, "".join(mutating_sequence_iterator(read_label=read_label, alterations=some_alterations))
 			print >> f, "+"
 			print >> f, "".join(mutating_sequence_iterator(read_label=read_label, alterations=some_alterations, output="qual"))
-			# print >> f, "\n"
+		# print >> f, "\n"
 
 		for i, read_label in time_iterator(non_altered_reads_labels, logger, msg_prefix="Generating altered fastq, non altered reads", delta_percent=0.1):
 			assert read_label not in output_reads
@@ -241,13 +241,13 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix,
 			print >> f, sub_reads.ix[read_label].SEQ
 			print >> f, "+"
 			print >> f, sub_reads.ix[read_label].QUAL
-			# print >> f, "\n"
-	serialize_results(output_file_prefix, some_alterations)
+		# print >> f, "\n"
+	serialize_results(output_result_prefix, some_alterations)
 
 	logger.info("finished generation for %d reads, %d alterations, output files are", n_reads, n_alterations)
-	logger.info("%s: Original sampled reads", output_file_prefix + "_non_alt.fastq")
-	logger.info("%s: Altered sampled reads", output_file_prefix + ".fastq")
-	logger.info("%s: Alterations description", output_file_prefix + ".alterations.txt")
+	logger.info("%s: Original sampled reads", output_reads_prefix + "_non_alt.fastq")
+	logger.info("%s: Altered sampled reads", output_reads_prefix + ".fastq")
+	logger.info("%s: Alterations description", output_result_prefix + ".alterations.txt")
 	logger.info("Alterations are %s", some_alterations)
 
 
@@ -256,7 +256,7 @@ def generate_alterations(a_label, alterations_weight, altered_reads_row, multi_m
 	# identify start and stop positions of reads that should be altered (with 10nt slack...)
 	ref_start = min([min(x) for x in altered_reads_row.ref_coord]) + 10
 	ref_end = max([max(x) for x in altered_reads_row.ref_coord]) - 10
-	logger.info("Will sample between %d and %d ",ref_start,ref_end)
+	logger.info("Will sample between %d and %d ", ref_start, ref_end)
 	# sample random alterations, reads that should be altered / kept as it
 	alterations_modify_content = False
 	max_try = 100
@@ -318,7 +318,8 @@ if __name__ == '__main__':
 	parser.add_argument('--n_reads', help='Number of reads for the generated sample', default=500, type=int, required=False)
 	parser.add_argument('--fraction_altered', help='Fraction (between 0 and 1) of reads that should have recurrent alterations', required=False, type=float, default=0.1)
 	parser.add_argument('--n_alterations', help='Number of alterations to insert', required=False, type=int, default=1)
-	parser.add_argument('--output_file_prefix', help='output file prefix', required=True, type=str)
+	parser.add_argument('--output_reads_prefix', help='output FASTQ reads file prefix', required=True, type=str)
+	parser.add_argument('--output_result_prefix', help='output JSON result prefix', required=True, type=str)
 	parser.add_argument('--input_sam', help='Input SAM file', required=True, type=str)
 	parser.add_argument('--alt_weight', help='Comma or "-" separated weights for alterations, in order:insertions, mismatches and deletions', required=False, type=str,
 						default="1,1,1")
@@ -358,13 +359,14 @@ if __name__ == '__main__':
 			alt_weights = map(float, args.alt_weight.split(","))
 		assert len(alt_weights) == 3, "3 comma separated weights should be provided"
 	except:
-		raise SyntaxError
+		raise SyntaxError('Malformed input parameter %s'%(args.alt_weight))
 	sampled_alt = []
 	alterations = build_a_sample(
 		n_reads=args.n_reads, n_alterations=args.n_alterations,
 		fraction_altered=args.fraction_altered,
-		output_file_prefix=args.output_file_prefix,
+		output_reads_prefix=args.output_reads_prefix,
+		output_result_prefix=args.output_result_prefix,
 		alterations_weight=alt_weights,
 		multi_mismatch=args.multi_mismatch
 	)
-	# pp.pprint(sampled_alt)
+# pp.pprint(sampled_alt)
