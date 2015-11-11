@@ -217,7 +217,7 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_reads_prefix
 
 	# generate original reads
 	with open(output_reads_prefix + "_non_alt.fastq", "w") as f:
-		for i, read_label in time_iterator(sub_reads.QNAME, logger, msg_prefix="Generating non altered fastq, non altered reads", delta_percent=0.1):
+		for i, read_label in time_iterator(sub_reads.QNAME, logger, msg_prefix="Generating non altered fastq, non altered reads", delta_percent=0.3):
 			print >> f, "@%s" % (clean_label(read_label)) + "_ORIG"
 			print >> f, sub_reads.ix[read_label].SEQ
 			print >> f, "+"
@@ -228,7 +228,7 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_reads_prefix
 	output_reads = set()
 	with open(output_reads_prefix + ".fastq", "w") as f:
 
-		for i, read_label in time_iterator(altered_reads_labels, logger, msg_prefix="Generating altered fastq, altered reads", delta_percent=0.1):
+		for i, read_label in time_iterator(altered_reads_labels, logger, msg_prefix="Generating altered fastq, altered reads", delta_percent=0.3):
 			assert read_label not in output_reads
 			output_reads.add(read_label)
 			print >> f, "@%s" % (clean_label(read_label)) + "_ALT"
@@ -237,7 +237,7 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_reads_prefix
 			print >> f, "".join(mutating_sequence_iterator(read_label=read_label, alterations=some_alterations, output="qual"))
 		# print >> f, "\n"
 
-		for i, read_label in time_iterator(non_altered_reads_labels, logger, msg_prefix="Generating altered fastq, non altered reads", delta_percent=0.1):
+		for i, read_label in time_iterator(non_altered_reads_labels, logger, msg_prefix="Generating altered fastq, non altered reads", delta_percent=0.3):
 			assert read_label not in output_reads
 			output_reads.add(read_label)
 

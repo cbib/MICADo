@@ -1,17 +1,17 @@
 
 import random
 
-#REFFASTA="data/reference/NM_000546.5.fasta"
-#REFFASTADICT="data/reference/NM_000546.5.dict"
-#IDXGENOMENAME="NM_000546_5"
+REFFASTA="data/reference/NM_000546.5.fasta"
+REFFASTADICT="data/reference/NM_000546.5.dict"
+IDXGENOMENAME="NM_000546_5"
 
 #REFFASTA="data/reference/reference_TP53_var_alpha.fasta"
 #REFFASTADICT="data/reference/reference_TP53_var_alpha.dict"
 #IDXGENOMENAME="reference_TP53_var_alpha"
 
-REFFASTA="data/reference/reference_TP53.fasta"
-REFFASTADICT="data/reference/reference_TP53.dict"
-IDXGENOMENAME="reference_TP53"
+#REFFASTA="data/reference/reference_TP53.fasta"
+#REFFASTADICT="data/reference/reference_TP53.dict"
+#IDXGENOMENAME="reference_TP53"
 
 SNPDATA="data/reference/snp_TP53.tab"
 SYNTHLABEL="SYNTHP53"
@@ -19,7 +19,9 @@ INPUTSAM="data/experimental_results/TP53/alignments/C_model_GMAPno40_NM_000546.5
 
 CURRENTXPDIR="data/synthetic"
 
-STAR="bin/STAR_2.5.0a"
+#STAR="bin/STAR_2.5.0a"
+#STAR="bin/STARlong_2.5.0a" #cf https://groups.google.com/forum/#!topic/rna-star/vcNIAQScQt8
+#STAR="bin/STAR" #cf https://groups.google.com/forum/#!topic/rna-star/vcNIAQScQt8
 VARSCAN="java -jar bin/VarScan.v2.4.0.jar"
 GATK="java -jar bin/GenomeAnalysisTK.jar"
 PICARD_DICT="java -jar bin/picard-1.140.jar CreateSequenceDictionary"
@@ -28,27 +30,33 @@ PICARD_RG="java -jar bin/picard-1.140.jar AddOrReplaceReadGroups"
 #rule gmap_tgt_genome:
 #    input : expand("data/gmap_genomes/{tgt}/{tgt}/{tgt}.version",tgt=IDXGENOMENAME)
 
-rule view_STAR_align_synth_1:
-    input: bam="data/synthetic/alignments/STAR/C_SYNTHP53_111_500_50_8_1-1-1_on_NM_000546_5.sorted.bam",ref_fasta=REFFASTA
-    shell:"""
-    samtools tview {input.bam} {input.ref_fasta}
-    """
+
+#rule gen_STAR_align_synth_1:
+#    input: bam="data/synthetic/alignments/STAR/C_SYNTHP53_111_1000_05_1_1-1-1_on_NM_000546_5.sorted.bam",ref_fasta=REFFASTA
+
+
+
+#rule view_STAR_align_synth_1:
+#    input: bam="data/synthetic/alignments/STAR/C_SYNTHP53_111_1000_05_1_1-1-1_on_NM_000546_5.sorted.bam",ref_fasta=REFFASTA
+#    shell:"""
+#    samtools tview {input.bam} {input.ref_fasta}
+#    """
 
 rule view_GMAP_align_synth_1:
-    input: bam="data/synthetic/alignments/GMAP/C_SYNTHP53_1112_500_50_8_1-1-1_on_NM_000546_5.sorted.bam",ref_fasta=REFFASTA
+    input: bam="data/synthetic/alignments/GMAP/C_SYNTHP53_111_1000_05_1_1-1-1_on_NM_000546_5.sorted.bam",ref_fasta=REFFASTA
     shell:"""
     samtools tview {input.bam} {input.ref_fasta}
     """
 
 rule test_varscan:
-    input : "data/synthetic/results/varscan/C_SYNTHP53_111_500_05_1_1-1-1_on_NM_000546_5.vcf"
+    input : "data/synthetic/results/varscan/C_SYNTHP53_111_1000_05_8_1-1-1_on_NM_000546_5.vcf"
 
 rule test_gatk:
-    input : "data/synthetic/results/gatk/C_SYNTHP53_111_500_05_1_1-1-1_on_NM_000546_5_raw.vcf"
+    input : "data/synthetic/results/gatk/C_SYNTHP53_111_1000_05_8_1-1-1_on_NM_000546_5_raw.vcf"
 
 
 rule test_micado:
-    input: "data/synthetic/results/micado/C_SYNTHP53_111_500_05_1_1-1-1.combined_alterations.json"
+    input: "data/synthetic/results/micado/C_SYNTHP53_111_1000_05_8_1-1-1.combined_alterations.json"
 
 # Generic rules
 
@@ -85,18 +93,18 @@ rule gmap_align_synthetic_data:
 
 ### STAR
 #
-#rule STAR_build_genome_index:
-#    input:
-#        ref_fasta=REFFASTA
-#    output:
-#        star_index_dir='STAR_genomes/{IDXGENOMENAME}',star_index_file='STAR_genomes/{IDXGENOMENAME}/SAindex'
-#    shell:"""
-#        ./bin/STAR --runMode genomeGenerate --genomeFastaFiles {input.ref_fasta} --genomeDir {output.star_index_dir}
-#    """
+rule STAR_build_genome_index:
+    input:
+        ref_fasta=REFFASTA
+    output:
+        star_index_dir='data/STAR_genomes/{IDXGENOMENAME}',star_index_file='data/STAR_genomes/{IDXGENOMENAME}/SAindex'
+    shell:"""
+        {STAR} --runMode genomeGenerate --genomeFastaFiles {input.ref_fasta} --genomeDir {output.star_index_dir}
+    """
 
 rule STAR_align_synth:
-    input:  star_index_file='STAR_genomes/{IDXGENOMENAME}/SAindex',\
-            star_genome_dir='STAR_genomes/{IDXGENOMENAME}',\
+    input:  star_index_file='data/STAR_genomes/{IDXGENOMENAME}/SAindex',\
+            star_genome_dir='data/STAR_genomes/{IDXGENOMENAME}',\
             reads="data/synthetic/reads/{sample}.fastq"
     params:
         sample            = "data/synthetic/reads/{sample}",\
@@ -109,9 +117,9 @@ rule STAR_align_synth:
 
     shell:"""
         mkdir -p data/synthetic/alignments/STAR/
-        ./bin/STAR_2.5.0a --genomeDir {input.star_genome_dir} --readFilesIn {input.reads} --outFileNamePrefix {params.alignment_ouput} \
-                          --outSAMattributes All \
-                          --outSAMmapqUnique 40
+        {STAR} --genomeDir {input.star_genome_dir} --readFilesIn {input.reads} --outFileNamePrefix {params.alignment_ouput} \
+               --outSAMattributes All \
+               --outSAMmapqUnique 40
         mv {params.alignment_ouput}/Aligned.out.sam {output.sam}
         samtools view -b -S {output.sam} > {output.bam}
         samtools sort {output.bam} {params.sorted_bam_prefix}
@@ -147,6 +155,11 @@ rule clean:
         rm data/synthetic/alignments/*.bam
         rm data/synthetic/alignments/*.sam
         rm data/synthetic/alignments/*.bai
+        rm -rf data/synthetic/results/*
+        rm -fr data/gmap_genomes/*
+        rm -fr data/STAR_genomes/*
+
+
     """
 
 
@@ -224,9 +237,9 @@ rule combine_json:
 
 # other variant caller
 
-
+## VARSCAN
 rule varscan_call:
-    input: aligned_reads="data/synthetic/alignments/STAR/{sample}.sorted.bam"
+    input: aligned_reads="data/synthetic/alignments/GMAP/{sample}.sorted.bam"
     output: vcf="data/synthetic/results/varscan/{sample}.vcf", \
             pileup="data/synthetic/pileups/{sample}.pileup.txt"
     shell:"""
@@ -235,7 +248,7 @@ rule varscan_call:
     """
 
 
-
+## GATK
 
 rule picard_dict_for_ref:
     input:REFFASTA
@@ -251,8 +264,8 @@ rule picard_dict_for_ref:
     """
 
 rule add_read_group:
-    input: aligned_reads="data/synthetic/alignments/STAR/{sample}.sorted.bam"
-    params: sample="data/synthetic/alignments/STAR/{sample}.sorted.bam"
+    input: aligned_reads="data/synthetic/alignments/GMAP/{sample}.sorted.bam"
+    params: sample="data/synthetic/alignments/GMAP/{sample}.sorted.bam"
     output: aligned_reads_w_rg="data/synthetic/gatk_temp/{sample}.rg.sorted.bam"
     shell:"""
     {PICARD_RG} I= {input.aligned_reads} O= {output.aligned_reads_w_rg} ID=1 RGLB=synth RGPL=solid RGPU=synth RGSM={params.sample}
@@ -288,11 +301,11 @@ rule gatk_call:
 
 	## HaplotypeCaller
 	{GATK} -T HaplotypeCaller -R {REFFASTA} -I {output.realigned_bam} -o {output.raw_vcfs} \
-	     # Check with justine if this is actually needed
-	     # --intervals 17 \
 	     --emitRefConfidence GVCF --variant_index_type LINEAR --variant_index_parameter 128000 \
 	     --allow_potentially_misencoded_quality_scores -dontUseSoftClippedBases \
 	     --maxReadsInRegionPerSample 10000 --min_base_quality_score 30 --forceActive
+	     # Check with justine if this is actually needed
+	     # --intervals 17 \
     """
 
 
