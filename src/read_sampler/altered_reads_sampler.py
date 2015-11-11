@@ -1,6 +1,7 @@
 # coding=utf-8
 from argparse import ArgumentParser
 import collections
+import pprint as pp
 import json
 import random
 import itertools
@@ -58,6 +59,7 @@ def coordinate_map(an_alignment_row):
 def random_alteration(start, end, weights, multi_mismatch=False):
 	# sample a position, alt type, length and content
 	a_pos = random.randint(start, end - MAX_LEN)
+	print "POS:",a_pos
 	a_type = helpers.weighted_choice(zip("IMD", weights))
 
 	if a_type == "M" and not multi_mismatch:
@@ -197,33 +199,17 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix,
 
 	# sample altered reads
 	altered_reads_labels = sub_reads.QNAME.sample(int(len(sub_reads) * fraction_altered), random_state=args.seed, replace=False)
-	altered_reads_row = all_ranges.ix[altered_reads_labels]
+	altered_read_rows = all_ranges.ix[altered_reads_labels]
 	non_altered_reads_labels = set(sub_reads.QNAME).difference(altered_reads_labels)
 	assert set(altered_reads_labels).isdisjoint(set(non_altered_reads_labels))
 
-	# identify start and stop positions of reads that should be altered (with 10nt slack...)
-	ref_start = min([min(x) for x in altered_reads_row.ref_coord]) + 10
-	ref_end = max([max(x) for x in altered_reads_row.ref_coord]) - 10
+	# pick a random label to test alterations
+	a_label = random.choice(altered_reads_labels)
 
-	# sample random alterations, reads that should be altered / kept as it
-	alterations_modify_content = False
-	max_try = 100
-	i = 0
-	while (not alterations_modify_content) and (i < max_try):
-		some_alterations = dict([random_alteration(ref_start, ref_end, weights=alterations_weight, multi_mismatch=multi_mismatch) for _ in range(n_alterations)])
-		# check that artificial alterations actually modify reads (case of generating a substitution corresponding to the actual content of the read)
-		a_label = random.choice(altered_reads_labels)
-		altered_sequence = "".join(mutating_sequence_iterator(read_label=a_label, alterations=some_alterations))
-		non_altered_sequence = sub_reads.ix[a_label].SEQ
-		if min_dist([x[0] for x in some_alterations])<=20:
-			logger.info("Alterations %s are too close, iterating", some_alterations)
-		elif altered_sequence != non_altered_sequence:
-			alterations_modify_content = True
-		else:
-			logger.info("Alterations %s correspond to the real read content, iterating", some_alterations)
-		i += 1
+	some_alterations = generate_alterations(a_label, alterations_weight, altered_read_rows, multi_mismatch, n_alterations, sub_reads)
 
-	logger.info("Generated alterations %s after %d trial", some_alterations, i)
+	if args.do_not_output_reads:
+		return some_alterations
 
 	# generate original reads
 	with open(output_file_prefix + "_non_alt.fastq", "w") as f:
@@ -263,6 +249,32 @@ def build_a_sample(n_reads, fraction_altered, n_alterations, output_file_prefix,
 	logger.info("%s: Altered sampled reads", output_file_prefix + ".fastq")
 	logger.info("%s: Alterations description", output_file_prefix + ".alterations.txt")
 	logger.info("Alterations are %s", some_alterations)
+
+
+def generate_alterations(a_label, alterations_weight, altered_reads_row, multi_mismatch, n_alterations, sub_reads):
+	some_alterations = []
+	# identify start and stop positions of reads that should be altered (with 10nt slack...)
+	ref_start = min([min(x) for x in altered_reads_row.ref_coord]) + 10
+	ref_end = max([max(x) for x in altered_reads_row.ref_coord]) - 10
+	logger.info("Will sample between %d and %d ",ref_start,ref_end)
+	# sample random alterations, reads that should be altered / kept as it
+	alterations_modify_content = False
+	max_try = 100
+	i = 0
+	while (not alterations_modify_content) and (i < max_try):
+		some_alterations = dict([random_alteration(ref_start, ref_end, weights=alterations_weight, multi_mismatch=multi_mismatch) for _ in range(n_alterations)])
+		# check that artificial alterations actually modify reads (case of generating a substitution corresponding to the actual content of the read)
+		altered_sequence = "".join(mutating_sequence_iterator(read_label=a_label, alterations=some_alterations))
+		non_altered_sequence = sub_reads.ix[a_label].SEQ
+		if min_dist([x[0] for x in some_alterations]) <= 20:
+			logger.info("Alterations %s are too close, iterating", some_alterations)
+		elif altered_sequence != non_altered_sequence:
+			alterations_modify_content = True
+		else:
+			logger.info("Alterations %s correspond to the real read content, iterating", some_alterations)
+		i += 1
+	logger.info("Generated alterations %s after %d trial", some_alterations, i)
+	return some_alterations
 
 
 def serialize_results(output_file_prefix, some_alterations):
@@ -315,6 +327,8 @@ if __name__ == '__main__':
 	parser.add_argument('--multi_mismatch', help='Allow for mismatches over multiple nt', required=False, action='store_true')
 	parser.add_argument('--output_lowercase', help='Output altered bases in lowercase', required=False, action='store_true')
 	parser.add_argument('--systematic_offset', help='Systematically offset all reported reference coordinates by this value', required=False, type=int, default=0)
+	parser.add_argument('--do_not_output_reads', help='Output sampled alteration information only', action="store_true")
+
 	args = parser.parse_args()
 	# starting_file = data_dir + "/alignments/C_model_GMAPno40_NM_000546.5.sam"
 	PROGRAMSTART = time.time()
@@ -345,10 +359,12 @@ if __name__ == '__main__':
 		assert len(alt_weights) == 3, "3 comma separated weights should be provided"
 	except:
 		raise SyntaxError
-	build_a_sample(
+	sampled_alt = []
+	alterations = build_a_sample(
 		n_reads=args.n_reads, n_alterations=args.n_alterations,
 		fraction_altered=args.fraction_altered,
 		output_file_prefix=args.output_file_prefix,
 		alterations_weight=alt_weights,
 		multi_mismatch=args.multi_mismatch
 	)
+	# pp.pprint(sampled_alt)

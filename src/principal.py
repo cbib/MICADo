@@ -200,6 +200,7 @@ def annotate_and_output_results(g_patient, g_reference, output_results):
 	experiment_description['parameters'] = vars(args)
 	experiment_description['n_reads'] = g_patient.n_reads
 	experiment_description['git_revision_hash'] = get_git_revision_hash()
+	# experiment_description['memory_usage'] = process.memory_info().rss
 
 	experiment_description['significant_alterations'] = annotated_alterations
 	experiment_description['graphs'] = {

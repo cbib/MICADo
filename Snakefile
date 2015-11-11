@@ -3,19 +3,51 @@ import random
 #                frac=["03",'035','040','045',"05","10","30","50"])
 rule specific:
     input:expand("data/synthetic/C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1.combined_alterations.json data/synthetic/C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1_C_model_GMAPno40.sorted.bam".split(),\
-                seed=[9584],\
-                nreads=1000,\
-                nalt=[2],\
+                seed=[7004],\
+                nreads=500,\
+                nalt=[1],\
                 alt_type=['1-1-1'],\
                 frac=['50'])
+#
+#rule alteration_files:
+#    input:expand("data/alterations/synthetic/C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1.txt",\
+#                seed=random.sample(range(10000),k=25),\
+#                nreads=[150,500,700,1000],\
+#                nalt=[1],\
+#                frac=['035','040','045',"05","10","50"])
+#rule generate_alterations:
+#    input:input_sam="data/alignments/C_model_GMAPno40_NM_000546.5.sam"
+#    params:
+#            sample_name="data/synthetic/{sample}_{seed}_{nreads}_{frac}_{nalt}_{altw}"
+#    log : "exec_logs/sampler_log_{sample}_{seed}_{nreads}_{frac}_{nalt}_{altw}.txt"
+#    output: alteration_file="data/alterations/synthetic/{sample}_{seed,\d+}_{nreads,\d+}_{frac,\d+}_{nalt,\d+}_{altw}.txt"
+#    shell:"""
+#        source ~/.virtualenvs/micado/bin/activate
+#        export PYTHONPATH=`pwd`/src
+#
+#        # build a sample
+#        /usr/bin/time -l python src/read_sampler/altered_reads_sampler.py --input_sam {input.input_sam}  \
+#                    --output_file_prefix "{params.sample_name}" \
+#                    --n_reads {wildcards.nreads} --fraction_altered 0.{wildcards.frac} --n_alterations {wildcards.nalt} --alt_weight {wildcards.altw} \
+#                    --seed {wildcards.seed} \
+#                    --do_not_output_reads \
+#                     --systematic_offset -202 2> {log} >> {output.alteration_file}
+#    """
+
+rule ComblerTrou:
+    input:expand("data/synthetic/C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1.combined_alterations.json",\
+                seed=random.sample(range(10000),k=25),\
+                nreads=[150,500,700,1000],\
+                nalt=[1],\
+                frac=['035','040','045',"05","10","50"])
 
 rule all:
     input:expand("data/synthetic/C_FOOFOO_{seed}_{nreads}_{frac}_{nalt}_1-1-1.combined_alterations.json",\
-                seed=random.sample(range(10000),k=8),\
                 nreads=[150,500,700,1000],\
                 nalt=[1,2,3],\
-                alt_type=['1-1-1','1-1-0','0-1-1'],\
-                frac=['035','040','045',"05","10","50"])
+                alt_type=['1-1-1'],\
+                frac=['035','040','045',"05","10","50"],\
+                seed=random.sample(range(100000),k=20))
 
 
 
@@ -30,10 +62,11 @@ rule clean:
 
 rule run_micado:
     priority :2
-    input : fasta_ref="data/reference/reference_TP53_C.fasta",\
+    input : fasta_ref="data/reference/reference_TP53.fasta",\
             random_sample="data/synthetic/{sample}.fastq",\
             snp_data="data/reference/snp_TP53.tab"
     params : sample_name= "data/synthetic/{sample}"
+    log : "exec_logs/micado_log_{sample}.txt"
     output:
             micado_results=temp("data/synthetic/{sample}.significant_alterations.json"),\
 
@@ -42,12 +75,12 @@ rule run_micado:
         export PYTHONPATH=`pwd`/src
 
         # run micado
-        python src/principal.py --fastq {input.random_sample} --experiment TP53 \
+        /usr/bin/time -l python src/principal.py --fastq {input.random_sample} --experiment TP53 \
                                 --fasta {input.fasta_ref} \
                                 --samplekey synth2 \
                                 --snp {input.snp_data} \
                                 --npermutations 20 --pvalue 0.1 \
-                                --results {output.micado_results}
+                                --results {output.micado_results} 2> {log}
 
 
 """
@@ -57,7 +90,7 @@ rule generate_sample:
     input:input_sam="data/alignments/C_model_GMAPno40_NM_000546.5.sam"
     params:
             sample_name="data/synthetic/{sample}_{seed}_{nreads}_{frac}_{nalt}_{altw}"
-
+    log : "exec_logs/sampler_log_{sample}_{seed}_{nreads}_{frac}_{nalt}_{altw}.txt"
     output:random_alt=temp("data/synthetic/{sample}_{seed,\d+}_{nreads,\d+}_{frac,\d+}_{nalt,\d+}_{altw}.fastq"),
            non_alt=temp("data/synthetic/{sample}_{seed,\d+}_{nreads,\d+}_{frac,\d+}_{nalt,\d+}_{altw}_non_alt.fastq"),\
            sampler_results=temp("data/synthetic/{sample}_{seed,\d+}_{nreads,\d+}_{frac,\d+}_{nalt,\d+}_{altw}.alterations.json")
@@ -66,15 +99,18 @@ rule generate_sample:
         export PYTHONPATH=`pwd`/src
 
         # build a sample
-        python src/read_sampler/altered_reads_sampler.py --input_sam {input.input_sam}  \
+        /usr/bin/time -l python src/read_sampler/altered_reads_sampler.py --input_sam {input.input_sam}  \
                     --output_file_prefix "{params.sample_name}" \
                     --n_reads {wildcards.nreads} --fraction_altered 0.{wildcards.frac} --n_alterations {wildcards.nalt} --alt_weight {wildcards.altw} \
                     --seed {wildcards.seed} \
+                     --systematic_offset -202 2> {log} >> alterations.txt
                     # --output_lowercase \
-                    --systematic_offset -202
 
     """
-rule combine_json :
+
+
+
+rule combine_json:
     priority : 50
     input : micado_results="data/synthetic/{sample}.significant_alterations.json",\
             sampler_results="data/synthetic/{sample}.alterations.json"
@@ -104,3 +140,5 @@ rule align_synthetic_data:
         samtools sort {params.sample}_C_model_GMAPno40.bam {params.sample}_C_model_GMAPno40.sorted
         samtools index {params.sample}_C_model_GMAPno40.sorted.bam
     """
+# other variant caller
+
