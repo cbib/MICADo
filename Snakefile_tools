@@ -117,7 +117,7 @@ rule run_micado:
     params : sample_name= XPDIR+"reads/{sample}"
     log : "exec_logs/micado_log_{sample}.txt"
     output:
-            micado_results=temp(XPDIR+"results/micado/{sample}.significant_alterations.json"),\
+            micado_results=XPDIR+"results/micado/{sample}.significant_alterations.json",\
 
     shell:"""
         source ~/.virtualenvs/micado/bin/activate
@@ -141,7 +141,7 @@ rule generate_sample:
             output_reads=XPDIR+"reads/{sample}_{seed}_{nreads}_{frac}_{nalt}_{altw}",\
             output_results=XPDIR+"results/sampler/{sample}_{seed}_{nreads}_{frac}_{nalt}_{altw}"
     log : "exec_logs/sampler_log_{sample}_{seed}_{nreads}_{frac}_{nalt}_{altw}.txt"
-    output:random_alt=temp(XPDIR+"reads/{sample}_{seed,\d+}_{nreads,\d+}_{frac,\d+}_{nalt,\d+}_{altw}.fastq"),
+    output:random_alt=XPDIR+"reads/{sample}_{seed,\d+}_{nreads,\d+}_{frac,\d+}_{nalt,\d+}_{altw}.fastq",
            non_alt=temp(XPDIR+"reads/{sample}_{seed,\d+}_{nreads,\d+}_{frac,\d+}_{nalt,\d+}_{altw}_non_alt.fastq"),\
            sampler_results=XPDIR+"results/sampler/{sample}_{seed,\d+}_{nreads,\d+}_{frac,\d+}_{nalt,\d+}_{altw}.alterations.json"
     shell:"""
