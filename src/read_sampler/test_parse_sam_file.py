@@ -6,7 +6,7 @@ __author__ = 'hayssam'
 
 
 class TestParse_sam_file(TestCase):
-	def test_parse_sam_file(self):
+	def test_parse_sam_file_original(self):
 		starting_file = data_dir + "/alignments/C_model_GMAPno40_NM_000546.5.sam"
 		reads = parse_sam_file(starting_file)
 		# print reads

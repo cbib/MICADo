@@ -187,11 +187,12 @@ rule varscan_call:
     input: aligned_reads=XPDIR+"alignments/GMAP/{sample}.sorted.bam"
     output: vcf=XPDIR+"results/varscan/{sample}.vcf", \
             pileup=XPDIR+"pileups/{sample}.pileup.txt"
+    log : "exec_logs/varscan_{sample}.txt"
     shell:"""
-        samtools mpileup -B -f {REFFASTA} -Q 3 -d 20000 {input.aligned_reads} > {output.pileup}
+        /usr/bin/time -l samtools mpileup -B -f {REFFASTA} -Q 3 -d 20000 {input.aligned_reads} > {output.pileup}
         {VARSCAN} mpileup2cns {output.pileup} \
         --strand-filter 0 --min-coverage 5 --min-reads2 5 --min-avg-qual 60 --min-var-freq 0.05 \
-        --p-value 0.001 --output-vcf 1 --variants 1 > {output.vcf}
+        --p-value 0.001 --output-vcf 1 --variants 1 > {output.vcf} 2> {log}
     """
 
 
@@ -221,13 +222,15 @@ rule add_read_group:
 rule index_for_gatk:
     input:aligned_reads_w_rg=XPDIR+"gatk_temp/{sample}.rg.sorted.bam"
     output:aligned_reads_w_rg_idx=XPDIR+"gatk_temp/{sample}.rg.sorted.bam.bai"
+    log : "exec_logs/gatk_{sample}.txt"
     shell:"""
-    samtools index {input.aligned_reads_w_rg}
+    /usr/bin/time -l samtools index {input.aligned_reads_w_rg} 2> {log}
     """
 
 rule gatk_call:
     input: aligned_reads = XPDIR+"gatk_temp/{sample}.rg.sorted.bam",fa_dict=REFFASTADICT,\
            indexed_reads = XPDIR+"gatk_temp/{sample}.rg.sorted.bam.bai"
+    log : "exec_logs/gatk_{sample}.txt"
     output: nsplitted=XPDIR+"gatk_temp/{sample}.Nsplitted.bam", \
             intervals=XPDIR+"gatk_temp/{sample}forIndelRealigner.intervals", \
             realigned_bam=XPDIR+"gatk_temp/{sample}_realigned.bam", \
@@ -235,22 +238,22 @@ rule gatk_call:
     shell:"""
 
 	## Split'N'Trim
-	{GATK}  -T SplitNCigarReads -R {REFFASTA} -I {input.aligned_reads} -o {output.nsplitted} \
-	      -U ALLOW_N_CIGAR_READS --allow_potentially_misencoded_quality_scores
+	/usr/bin/time -l {GATK}  -T SplitNCigarReads -R {REFFASTA} -I {input.aligned_reads} -o {output.nsplitted} \
+	      -U ALLOW_N_CIGAR_READS --allow_potentially_misencoded_quality_scores 2>> {log}
 
 	## RealignerTargetCreator
-	{GATK} -T RealignerTargetCreator -R {REFFASTA} -I {output.nsplitted} -o {output.intervals} \
-	     --allow_potentially_misencoded_quality_scores
+	/usr/bin/time -l {GATK} -T RealignerTargetCreator -R {REFFASTA} -I {output.nsplitted} -o {output.intervals} \
+	     --allow_potentially_misencoded_quality_scores 2>> {log}
 
 	## IndelRealigner
-	{GATK} -T IndelRealigner -R {REFFASTA} -I {output.nsplitted} -targetIntervals {output.intervals} -o {output.realigned_bam} \
-	     --allow_potentially_misencoded_quality_scores
+	/usr/bin/time -l {GATK} -T IndelRealigner -R {REFFASTA} -I {output.nsplitted} -targetIntervals {output.intervals} -o {output.realigned_bam} \
+	     --allow_potentially_misencoded_quality_scores 2>> {log}
 
 	## HaplotypeCaller
-	{GATK} -T HaplotypeCaller -R {REFFASTA} -I {output.realigned_bam} -o {output.raw_vcfs} \
+	/usr/bin/time -l {GATK} -T HaplotypeCaller -R {REFFASTA} -I {output.realigned_bam} -o {output.raw_vcfs} \
 	     --emitRefConfidence GVCF --variant_index_type LINEAR --variant_index_parameter 128000 \
 	     --allow_potentially_misencoded_quality_scores -dontUseSoftClippedBases \
-	     --maxReadsInRegionPerSample 10000 --min_base_quality_score 30 --forceActive
+	     --maxReadsInRegionPerSample 10000 --min_base_quality_score 30 --forceActive 2>> {log}
 	     # Check with justine if this is actually needed
 	     # --intervals 17 \
     """

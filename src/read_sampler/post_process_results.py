@@ -161,4 +161,4 @@ for i, input_json in time_iterator(avail_results, logger=logger):
 	result_table.extend(this_result_table)
 
 all_results = pd.DataFrame.from_records(result_table)
-all_results.to_csv("data/summary/results_on_synthetic_data.csv")
+all_results.to_csv("data/synthetic/summary/micado_results_on_synthetic_data.csv")

@@ -42,14 +42,14 @@ class PatientGraph:
 					curr_kmer = sequence[(i2):(i2 + kmer_length)]
 					next_kmer = sequence[(i2 + 1):(i2 + 1 + kmer_length)]
 					if next_kmer not in self.dbg:
-						self.dbg.add_node(next_kmer, read_list_n=set([fastq_id + "_" + str(comp)]), fastq_id=set([fastq_id]))
+						self.dbg.add_node(next_kmer, read_list_n={fastq_id + "_" + str(comp)}, fastq_id={fastq_id})
 					if curr_kmer in self.dbg:
 						self.dbg.node[curr_kmer]['read_list_n'].add(fastq_id + "_" + str(comp))
 						self.dbg.node[curr_kmer]['fastq_id'].add(fastq_id)
 						if next_kmer not in self.dbg[curr_kmer]:
 							self.dbg.add_edge(curr_kmer, next_kmer)
 					else:
-						self.dbg.add_node(curr_kmer, read_list_n=set([fastq_id + "_" + str(comp)]), fastq_id=set([fastq_id]))
+						self.dbg.add_node(curr_kmer, read_list_n={fastq_id + "_" + str(comp)}, fastq_id={fastq_id})
 						self.dbg.add_edge(curr_kmer, next_kmer)
 			self.coverage[fastq_id] = comp
 			self.coverage['total'] += comp
@@ -63,7 +63,7 @@ class PatientGraph:
 			coverage_node += self.coverage[fastq_id]
 		return coverage_node
 
-	## Delete nodes of a graph G with count < coverage * min_support %
+	# Delete nodes of a graph G with count < coverage * min_support %
 	def graph_cleaned_init(self, min_support):
 		self.dbgclean = self.dbg.copy()
 		nodes_count_inf_seuil = []
@@ -114,7 +114,7 @@ class PatientGraph:
 					intersect_allnodes_pathAlt_G_sample = set.intersection(*read_set_pathAlt_G_sample)
 					if len(intersect_allnodes_pathAlt_G_sample) == 0:
 						continue
-					## Reference path choice
+					# Reference path choice
 					# Replace start/end if it's a tips
 					if node_start not in G_ref:
 						logger.critical("The node %s (read support : %d) is a tips(start)", node_start, len(self.dbg_refrm.node[alternative_path[1]]['read_list_n']))
@@ -127,40 +127,13 @@ class PatientGraph:
 					for i_path in nx.all_simple_paths(G_ref, node_start, node_end):
 						reference_path_list.append(i_path)
 
-					## if there is no reference path, check predecessors/successors of start/end nodes of the path (just +1 at this moment)
-					## add the choice to use it or remove it
-					# if len(reference_path_list) == 0:
-					# 	reference_path_list_successor = [] 
-					# 	reference_path_list_predecessor = [] 
-					# 	for successor in G_ref.successors(node_end):
-					# 		for i_path_successor in nx.all_simple_paths(G_ref, node_start ,successor):
-					# 			reference_path_list_successor.append(i_path_successor)
-					# 		if len(reference_path_list_successor) > 0:
-					# 			logger.critical("Successor is add to the reference and alternative path between %s and %s",node_start,node_end)
-					# 			alternative_path.append(successor)
-					# 			node_end = successor
-					# 			reference_path_list = reference_path_list_successor
-					# 	for predecessor in G_ref.predecessors(node_start):
-					# 		for i_path_predecessor in nx.all_simple_paths(G_ref, predecessor, node_end):
-					# 			reference_path_list_predecessor.append(i_path_predecessor)
-					# 		if len(reference_path_list_predecessor) > 0:
-					# 			logger.critical("Predecessor is add to the reference and alternative path between %s and %s",node_start,node_end)										
-					# 			alternative_path.insert(0,predecessor)
-					# 			node_start = predecessor
-					# 			reference_path_list = reference_path_list_predecessor
-					# 			break
-					# 	if len(reference_path_list_predecessor) == 0 and len(reference_path_list_successor) == 0:
-					# 		logger.critical("No reference path between %s and %s",node_start,node_end)						
-					# 		logger.critical("Alternative path : %s",alternative_path)
-					# 		continue					
-
 					if len(reference_path_list) == 0:
 						logger.critical("No reference path between %s and %s", node_start, node_end)
 						logger.critical("Alternative path : %s", alternative_path)
 						continue
 
-					## if there is multiple references paths, check the largest read intersection or the smallest reference tags 
-					## if no clear criteria for choice is found we keep the first reference path
+					# if there is multiple references paths, check the largest read intersection or the smallest reference tags
+					# if no clear criteria for choice is found we keep the first reference path
 					if len(reference_path_list) > 1:
 						reference_path = reference_path_list[0]
 						size_biggest_intersection = len(list(set(alternative_path) & set(reference_path)))
@@ -179,27 +152,6 @@ class PatientGraph:
 								if delta_2 < delta_1:
 									size_biggest_intersection = size_intersection
 									reference_path = curr_reference_path
-
-					# ## old version whith alignment
-					# if len(reference_path_list) > 1 :
-					# 	alignment_score = -10000
-					# 	alternative_sequence = ALT.kmerpathToSeq(alternative_path,k)
-					# 	for i_reference_path in range(0,len(reference_path_list)):
-					# 		reference_sequence = ALT.kmerpathToSeq(reference_path_list[i_reference_path],k)
-					# 		score = pairwise2.align.globalms(alternative_sequence,reference_sequence, 2, -3, -5, -2)[0][2]
-					# 		if score > alignment_score:
-					# 			alignment_score = score
-					# 			reference_path = reference_path_list[i_reference_path]
-					# 		elif score == alignment_score:
-					# 			old_ref_list_set = set()
-					# 			new_ref_list_set = set()
-					# 			for node2check in reference_path:
-					# 				old_ref_list_set.update(set(G_ref.node[node2check]['ref_list'].keys()))
-					# 			for node2check in reference_path_list[i_reference_path]:
-					# 				new_ref_list_set.update(set(G_ref.node[node2check]['ref_list'].keys()))
-					# 			if len(old_ref_list_set) > len(new_ref_list_set):
-					# 				reference_path = reference_path_list[i_reference_path]
-
 					else:
 						reference_path = reference_path_list[0]
 					# Read intersection of all nodes in the reference path for g_patient 

@@ -51,24 +51,30 @@ rule test_gatk:
 rule test_micado:
     input: XPDIR+"results/micado/"+TESTSAMPLEPARAMS+".combined_alterations.json"
 
-# generate multi
+
+# generate multi synthetic reads, then call with the three tools
 AVAIL_SYNTH_READS_FILE, = glob_wildcards(XPDIR+"reads/{id}.fastq")
 
+#rule build_multi_sample:
+#    input : \
+#             expand(XPDIR+"reads/C_SYNTHP53_{seed}_500_05_3_1-1-1.fastq",seed=random.sample(range(50000),k=100)),
+#             expand(XPDIR+"reads/C_SYNTHP53_{seed}_500_10_3_1-1-1.fastq",seed=random.sample(range(50000),k=100)),
+#             expand(XPDIR+"reads/C_SYNTHP53_{seed}_500_50_3_1-1-1.fastq",seed=random.sample(range(50000),k=100)),
+
 rule build_multi_sample:
-    input : \
-            expand(XPDIR+"reads/C_SYNTHP53_{seed}_500_05_3_1-1-1.fastq",seed=random.sample(range(50000),k=100))
-            # expand(XPDIR+"reads/C_SYNTHP53_{seed}_500_10_3_1-1-1.fastq",seed=random.sample(range(50000),k=100))
+    input :  expand(XPDIR+"reads/C_SYNTHP53_{seed}_{nreads}_{fraction}_3_1-1-1.fastq",seed=random.sample(range(50000),k=100),nreads=[150,800],fraction=["05","10","50","80"])
+
 
 rule eval_varscan_multi:
     input:expand(XPDIR+"results/varscan/{sample}_on_NM_000546_5.vcf",sample=AVAIL_SYNTH_READS_FILE)
-    shell : "wc -l data/synthetic/results/varscan/C_SYNTHP53_*500_10_3_* | sort -n"
+    shell : "wc -l data/synthetic/results/varscan/C_SYNTHP53_*500_10_3_*.vcf | sort -n"
+
 
 rule eval_gatk_multi:
     input:expand(XPDIR+"results/gatk/{sample}_on_NM_000546_5_raw.vcf",sample=AVAIL_SYNTH_READS_FILE)
-    shell : "wc -l data/synthetic/results/gatk/C_SYNTHP53_*500_10_3_* | sort -n"
 
 rule eval_micado_multi:
-    input : expand(XPDIR+"results/micado/{sample}.combined_alterations.json",sample=AVAIL_SYNTH_READS_FILE)
+    input : expand(XPDIR+"results/micado/{sample}.significant_alterations.json",sample=AVAIL_SYNTH_READS_FILE)
     shell:"""
         cat data/synthetic/results/micado/C_SYNTHP53_*_500_10_3_1-1-1.combined_alterations.json | jq  -c \
         '{{"seed":.sampler.parameters.seed,"n":.significant_alterations|length,"inj":.sampler.injected_alterations|length}}'
@@ -77,4 +83,7 @@ rule eval_micado_multi:
 rule map_avail_reads:
     input: expand(XPDIR+"results/varscan/{sample}_on_NM_000546_5.vcf",sample=AVAIL_SYNTH_READS_FILE),\
            expand(XPDIR+"results/gatk/{sample}_on_NM_000546_5_raw.vcf",sample=AVAIL_SYNTH_READS_FILE),\
-           expand(XPDIR+"results/micado/{sample}.combined_alterations.json",sample=AVAIL_SYNTH_READS_FILE),
+           expand(XPDIR+"results/micado/{sample}.significant_alterations.json",sample=AVAIL_SYNTH_READS_FILE),
+
+rule specific_micado_bug0:
+    input: XPDIR+"results/micado/C_SYNTHP53_22640_500_05_3_1-1-1.significant_alterations.json"
