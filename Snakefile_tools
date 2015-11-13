@@ -23,14 +23,14 @@ rule gmap_align_sample:
             sorted_bam_index = XPDIR+"alignments/GMAP/{sample}_on_{IDXGENOMENAME}.sorted.bam.bai",\
             temp_bam = XPDIR+"alignments/GMAP/{sample}_on_{IDXGENOMENAME}.bam"
     shell:"""
-        gmap --min-intronlength=15000 -t 32 -D data/gmap_genomes/{IDXGENOMENAME} \
+        /usr/bin/time -l gmap --min-intronlength=15000 -t 32 -D data/gmap_genomes/{IDXGENOMENAME} \
              -d {IDXGENOMENAME} -f samse --read-group-id=EORTC10994 \
              --read-group-name=GemSim_test --read-group-library=MWG1 \
              --read-group-platform=PACBIO {input.fastq} >  {output.temp_sam} 2> {log}
 
-        samtools view -b -S {output.temp_sam} > {output.temp_bam}
-        samtools sort {output.temp_bam} {params.sorted_bam_prefix}
-        samtools index {output.sorted_bam}
+        /usr/bin/time -l samtools view -b -S {output.temp_sam} > {output.temp_bam} 2>> {log}
+        /usr/bin/time -l samtools sort {output.temp_bam} {params.sorted_bam_prefix} 2>> {log}
+        /usr/bin/time -l samtools index {output.sorted_bam} 2>> {log}
     """
 
 ### STAR
@@ -69,44 +69,6 @@ rule STAR_align_sample:
      """
 
 
-# Synthetic Experimental results
-rule specific:
-    input:expand("{dir}/results/C_{lbl}_{seed}_{nreads}_{frac}_{nalt}_1-1-1.combined_alterations.json data/synthetic/alignments/C_{lbl}_{seed}_{nreads}_{frac}_{nalt}_1-1-1_C_model_GMAPno40.sorted.bam".split(),\
-                dir=XPDIR, \
-                lbl=SYNTHLABEL,\
-                seed=[7004],\
-                nreads=500,\
-                nalt=[1],\
-                alt_type=['1-1-1'],\
-                frac=['50'])
-
-rule all_synthetic:
-    input:expand("{dir}/results/C_{lbl}_{seed}_{nreads}_{frac}_{nalt}_1-1-1.combined_alterations.json",\
-                dir=XPDIR, \
-                lbl=SYNTHLABEL,\
-                nreads=[150,500,700,1000],\
-                nalt=[1,2,3],\
-                alt_type=['1-1-1'],\
-                frac=['035','040','045',"05","10","50"],\
-                seed=random.sample(range(100000),k=20))
-
-
-
-rule clean:
-    shell:"""
-        rm data/synthetic/resuls/*.json
-        rm data/synthetic/reads/*.fastq
-        rm data/synthetic/alignments/*.bam
-        rm data/synthetic/alignments/*.sam
-        rm data/synthetic/alignments/*.bai
-        rm -rf data/synthetic/results/*
-        rm -fr data/gmap_genomes/*
-        rm -fr data/STAR_genomes/*
-
-
-    """
-
-
 
 # MICADO
 rule run_micado:
@@ -125,10 +87,11 @@ rule run_micado:
 
         # run micado
         /usr/bin/time -l python src/principal.py --fastq {input.random_sample} --experiment TP53 \
+                                --kmer_length 18 \
                                 --fasta {input.fasta_ref} \
                                 --samplekey {SAMPLEKEY} \
                                 --snp {input.snp_data} \
-                                --npermutations 20 --pvalue 0.1 \
+                                --npermutations 300 --pvalue 0.1 \
                                 --results {output.micado_results} 2> {log}
 
 
@@ -168,7 +131,7 @@ rule combine_json:
     input : micado_results=XPDIR+"results/micado/{sample}.significant_alterations.json",\
             sampler_results=XPDIR+"results/sampler/{sample}.alterations.json"
 
-    output:combined_json=temp(XPDIR+"results/micado/{sample}.combined_alterations.temp.json"),
+    output:combined_json=XPDIR+"results/micado/{sample}.combined_alterations.temp.json",
            cleaned_json=XPDIR+"results/micado/{sample}.combined_alterations.json"
     shell:"""
         # merge known alterations and identified alterations
@@ -189,10 +152,10 @@ rule varscan_call:
             pileup=XPDIR+"pileups/{sample}.pileup.txt"
     log : "exec_logs/varscan_{sample}.txt"
     shell:"""
-        /usr/bin/time -l samtools mpileup -B -f {REFFASTA} -Q 3 -d 20000 {input.aligned_reads} > {output.pileup}
-        {VARSCAN} mpileup2cns {output.pileup} \
+        /usr/bin/time -l samtools mpileup -B -f {REFFASTA} -Q 3 -d 20000 {input.aligned_reads} > {output.pileup} 2> {log}
+        /usr/bin/time -l {VARSCAN} mpileup2cns {output.pileup} \
         --strand-filter 0 --min-coverage 5 --min-reads2 5 --min-avg-qual 60 --min-var-freq 0.05 \
-        --p-value 0.001 --output-vcf 1 --variants 1 > {output.vcf} 2> {log}
+        --p-value 0.001 --output-vcf 1 --variants 1 > {output.vcf} 2>> {log}
     """
 
 
@@ -214,9 +177,10 @@ rule picard_dict_for_ref:
 rule add_read_group:
     input: aligned_reads=XPDIR+"alignments/GMAP/{sample}.sorted.bam"
     params: sample=XPDIR+"alignments/GMAP/{sample}.sorted.bam"
+    log : "exec_logs/gatk_{sample}.txt"
     output: aligned_reads_w_rg=XPDIR+"gatk_temp/{sample}.rg.sorted.bam"
     shell:"""
-    {PICARD_RG} I= {input.aligned_reads} O= {output.aligned_reads_w_rg} ID=1 RGLB={SAMPLEKEY} RGPL=solid RGPU={SAMPLEKEY} RGSM={params.sample}
+   /usr/bin/time -l {PICARD_RG} I= {input.aligned_reads} O= {output.aligned_reads_w_rg} ID=1 RGLB={SAMPLEKEY} RGPL=solid RGPU={SAMPLEKEY} RGSM={params.sample} 2> {log}
     """
 
 rule index_for_gatk:
@@ -224,7 +188,7 @@ rule index_for_gatk:
     output:aligned_reads_w_rg_idx=XPDIR+"gatk_temp/{sample}.rg.sorted.bam.bai"
     log : "exec_logs/gatk_{sample}.txt"
     shell:"""
-    /usr/bin/time -l samtools index {input.aligned_reads_w_rg} 2> {log}
+    /usr/bin/time -l samtools index {input.aligned_reads_w_rg} 2>> {log}
     """
 
 rule gatk_call:
