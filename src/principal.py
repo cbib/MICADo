@@ -20,6 +20,7 @@ logger.info("Will import")
 from reference_graph import ReferenceGraph as RG
 import visualization as VISU
 from patient_graph import PatientGraph as PG
+from randomreadsgraph import RandomReadsGraph as RRG
 
 logger.info("Import finished")
 
@@ -27,10 +28,12 @@ logger.info("Import finished")
 def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_threshold, max_len, sample_key=None, fastq_files=None,
 				   fasta_file=None, snp_file=None, experiment_name=None,
 				   destination_directory=".", export_gml=False, output_results=None):
+	# TODO use new interface
 	if experiment_name == "TP53":
-		from randomreadsgraph_TP53 import RandomReadsGraph as RRG
+		import seq_lib_TP53 as seq_lib_module
 	else:
-		from randomreadsgraph import RandomReadsGraph as RRG
+		import seq_lib as seq_lib_module
+
 
 	# g_reference construction
 	logger.info("Will build reference graph with k==%d and fasta=%s & snp=%s", kmer_length, fasta_file, snp_file)
@@ -47,7 +50,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 							  snp_file=snp_file,
 							  experiment_name=experiment_name, min_support_percentage=min_support_percentage, n_permutations=n_permutations,
 							  destination_directory=destination_directory, export_gml=export_gml, p_value_threshold=p_value_threshold,
-							  output_results=output_results)
+							  output_results=output_results,max_len=max_len)
 
 	# g_patient construction
 	logger.info("Will build patient graph for %s with k==%d and minimum support = %dpct", fastq_files, kmer_length, min_support_percentage)
@@ -68,7 +71,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 							  snp_file=snp_file,
 							  experiment_name=experiment_name, min_support_percentage=min_support_percentage, n_permutations=n_permutations,
 							  destination_directory=destination_directory, export_gml=export_gml, p_value_threshold=p_value_threshold,
-							  output_results=output_results)
+							  output_results=output_results,max_len=max_len)
 
 	# Some prints for stats 
 	dir_stat = get_or_create_dir("output/statistics")
@@ -114,7 +117,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 		all_possible_kmers.update(an_alt.alternative_path)
 
 	for i, j in time_iterator(range(0, n_permutations), logger, msg_prefix="permuting"):
-		g_random = RRG(g_patient.coverage, kmer_length, restrict_to=all_possible_kmers)
+		g_random = RRG(g_patient.coverage, kmer_length, restrict_to=all_possible_kmers,seq_lib_module=seq_lib_module)
 		for i_alteration in range(0, len(g_patient.alteration_list)):
 
 			ref_path = g_patient.alteration_list[i_alteration].reference_path
@@ -136,7 +139,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 	if len(g_patient.significant_alteration_list) > 1:
 		g_patient.multiple_alternative_path_filter()
 
-	## Stat 
+	# Stat
 	# alteration stat
 	alt_stat_file = open(dir_stat + "/alt_stat_file" + sample_key + ".tsv", 'w')
 	for i_alteration in range(0, len(g_patient.alteration_list)):

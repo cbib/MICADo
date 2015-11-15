@@ -1,5 +1,5 @@
 # For one PCR amplicon
-#!/usr/bin/env python
+# !/usr/bin/env python
 # coding=utf8
 import collections
 import os
@@ -17,6 +17,7 @@ logger.info("Setting up SEQLIB")
 
 # TO CHANGE !!!!!
 experiment_name = "FLT3"
+
 
 def build_read_library(FASTQFILE_PATH):
 	read_library = collections.defaultdict(list)
@@ -44,22 +45,23 @@ def build_serialize_library(FASTQFILE_PATH):
 	logger.info("Packed to %d chars", len(packed_docs))
 	get_or_create_dir("data")
 	get_or_create_dir("data/seq")
-	tgt_file = "data/seq/"+experiment_name+"_%s_%d.packb" % ((int(time.time())), len(read_library))
+	tgt_file = "data/seq/" + experiment_name + "_%s_%d.packb" % ((int(time.time())), len(read_library))
 	with open(tgt_file, "w") as f:
 		f.write(packed_docs)
 
 	logger.info("Serialized to file %s" % tgt_file)
 
+
 # def library_itit(experiment_name):
-FASTQFILE_PATH = "data/fastq/"+experiment_name
+FASTQFILE_PATH = "data/fastq/" + experiment_name
 if 'rebuild_library' in sys.argv:
 	build_serialize_library(FASTQFILE_PATH)
 else:
-	avail_files = {x: x.split("_") for x in glob.glob("data/seq/"+experiment_name+"_*_*.packb")}.items()
-	if len(avail_files)<1:
+	avail_files = {x: x.split("_") for x in glob.glob("data/seq/" + experiment_name + "_*_*.packb")}.items()
+	if len(avail_files) < 1:
 		logger.info("Force rebuilding")
 		build_serialize_library(FASTQFILE_PATH)
-		avail_files = {x: x.split("_") for x in glob.glob("data/seq/"+experiment_name+"_*_*.packb")}.items()	
+		avail_files = {x: x.split("_") for x in glob.glob("data/seq/" + experiment_name + "_*_*.packb")}.items()
 	avail_files.sort(key=lambda x: float(x[1][1]), reverse=True)
 	most_recent = avail_files[0][0]
 
@@ -68,7 +70,6 @@ else:
 		read_library = msgpack.unpack(f)
 	# un_packed_idx = [(ObjectId(x[0]), x[1]) for x in un_packed_idx]
 	logger.info("De-Serialized %d read lib" % (len(read_library)))
-
 
 
 # Sampling fonction from a coverage dict (with keys 'N' et 'C')
