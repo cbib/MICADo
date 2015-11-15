@@ -40,10 +40,21 @@ rule test_gatk:
 rule test_micado:
     input: XPDIR+"results/micado/"+AP53SAMPLE+".significant_alterations.json"
 
-pool_0_samples= [x.split()[0] for x in open("data/experimental_results/TP53/pool_0_groups.tsv","r")]
+pool_0_samples= [x.split(",")[0] for x in open("data/experimental_results/TP53/pool_0_groups.tsv","r").readlines()[1:]]
 
 rule test_micado_pool_0:
     input: expand(XPDIR+"results/micado/{sample}.significant_alterations.json",sample=pool_0_samples)
+
+
+rule test_varscan_pool_0:
+    input: expand(XPDIR+"results/varscan/{sample}_on_NM_000546_5.vcf",sample=pool_0_samples)
+
+rule test_gatk_pool_0:
+    input: expand(XPDIR+"results/gatk/{sample}_on_NM_000546_5_raw.vcf",sample=pool_0_samples)
+
+rule micado_large_deletion_bug:
+    input : XPDIR+"results/micado/N_215_1.significant_alterations.json",XPDIR+"results/micado/C_215_1.significant_alterations.json"
+
 
 
 

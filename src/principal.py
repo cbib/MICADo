@@ -24,7 +24,8 @@ from patient_graph import PatientGraph as PG
 logger.info("Import finished")
 
 
-def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_threshold, sample_key=None, fastq_files=None, fasta_file=None, snp_file=None, experiment_name=None,
+def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_threshold, max_len, sample_key=None, fastq_files=None,
+				   fasta_file=None, snp_file=None, experiment_name=None,
 				   destination_directory=".", export_gml=False, output_results=None):
 	if experiment_name == "TP53":
 		from randomreadsgraph_TP53 import RandomReadsGraph as RRG
@@ -42,9 +43,11 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 			sys.exit(0)
 		# Check non depassement valeur limite de k
 		logger.info("[Reference graph] Increasing k to %d to remove cycles", kmer_length)
-		return process_sample(kmer_length=kmer_length + 1, sample_key=sample_key, fastq_files=fastq_files, fasta_file=fasta_file, snp_file=snp_file,
+		return process_sample(kmer_length=kmer_length + 1, sample_key=sample_key, fastq_files=fastq_files, fasta_file=fasta_file,
+							  snp_file=snp_file,
 							  experiment_name=experiment_name, min_support_percentage=min_support_percentage, n_permutations=n_permutations,
-							  destination_directory=destination_directory, export_gml=export_gml, p_value_threshold=p_value_threshold, output_results=output_results)
+							  destination_directory=destination_directory, export_gml=export_gml, p_value_threshold=p_value_threshold,
+							  output_results=output_results)
 
 	# g_patient construction
 	logger.info("Will build patient graph for %s with k==%d and minimum support = %dpct", fastq_files, kmer_length, min_support_percentage)
@@ -61,9 +64,11 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 			sys.exit(0)
 		# Check non depassement valeur limite de k
 		logger.info("[Sample graph] Increasing k to %d to remove cycles", kmer_length)
-		return process_sample(kmer_length=kmer_length + 1, sample_key=sample_key, fastq_files=",".join(fastq_files), fasta_file=fasta_file, snp_file=snp_file,
+		return process_sample(kmer_length=kmer_length + 1, sample_key=sample_key, fastq_files=",".join(fastq_files), fasta_file=fasta_file,
+							  snp_file=snp_file,
 							  experiment_name=experiment_name, min_support_percentage=min_support_percentage, n_permutations=n_permutations,
-							  destination_directory=destination_directory, export_gml=export_gml, p_value_threshold=p_value_threshold, output_results=output_results)
+							  destination_directory=destination_directory, export_gml=export_gml, p_value_threshold=p_value_threshold,
+							  output_results=output_results)
 
 	# Some prints for stats 
 	dir_stat = get_or_create_dir("output/statistics")
@@ -99,7 +104,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 	g_patient.graph_rmRefEdges_init(g_patient.dbgclean, g_reference.dbg)
 
 	# search for alternative paths in dbg_refrm (.alteration_list creation)
-	g_patient.alteration_list_init(g_reference.dbg, kmer_length, min_support_percentage)
+	g_patient.alteration_list_init(g_reference.dbg, kmer_length, min_support_percentage,max_len)
 
 	### Permutation test ###
 	logger.info("Will create random graphs")
@@ -111,7 +116,11 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 	for i, j in time_iterator(range(0, n_permutations), logger, msg_prefix="permuting"):
 		g_random = RRG(g_patient.coverage, kmer_length, restrict_to=all_possible_kmers)
 		for i_alteration in range(0, len(g_patient.alteration_list)):
-			g_random_data = g_random.check_path(g_patient.alteration_list[i_alteration].reference_path, g_patient.alteration_list[i_alteration].alternative_path,
+
+			ref_path = g_patient.alteration_list[i_alteration].reference_path
+			alt_path = g_patient.alteration_list[i_alteration].alternative_path
+			g_random_data = g_random.check_path(ref_path,
+												alt_path,
 												g_patient.alteration_list[i_alteration].min_coverage)
 			g_patient.alteration_list[i_alteration].random_ratio_list.append(g_random_data[0])
 			g_patient.alteration_list[i_alteration].random_reference_count_list.append(g_random_data[1])
@@ -166,7 +175,8 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 		g_patient_merged = VISU.merge_individu_graph(g_patient.dbg.copy(), g_reference.dbg.copy())
 		g_patient_merged_visu = VISU.individu_graph_merged_visualization_formating(g_patient_merged.copy(), g_reference.dbg.copy())
 		g_patient_clean_merged = VISU.merge_individu_graph(g_patient.dbgclean.copy(), g_reference.dbg.copy())
-		g_patient_clean_merged_visu = VISU.individu_graph_merged_visualization_formating(g_patient_clean_merged.copy(), g_reference.dbg.copy())
+		g_patient_clean_merged_visu = VISU.individu_graph_merged_visualization_formating(g_patient_clean_merged.copy(),
+																						 g_reference.dbg.copy())
 		nx.write_gml(g_patient_visu, destination_directory + "/" + graph_name + str(kmer_length) + ".gml")
 		nx.write_gml(g_patient_clean_visu, destination_directory + "/" + cleaned_graph_name + str(kmer_length) + ".gml")
 		nx.write_gml(g_patient_merged_visu, destination_directory + "/" + merged_graph_name + str(kmer_length) + ".gml")
@@ -183,9 +193,11 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 		if g_reference.snp[snp_id][1] in g_patient.dbgclean:
 			if g_reference.snp[snp_id][0] in g_patient.dbgclean:
 				graph_snp.write("%s\t%s\t%d\t%d\n" % (
-					sample_key, snp_id, len(g_patient.dbg.node[g_reference.snp[snp_id][0]]['read_list_n']), len(g_patient.dbg.node[g_reference.snp[snp_id][1]]['read_list_n'])))
+					sample_key, snp_id, len(g_patient.dbg.node[g_reference.snp[snp_id][0]]['read_list_n']),
+					len(g_patient.dbg.node[g_reference.snp[snp_id][1]]['read_list_n'])))
 			else:
-				graph_snp.write("%s\t%s\t0\t%d\n" % (sample_key, snp_id, len(g_patient.dbg.node[g_reference.snp[snp_id][1]]['read_list_n'])))
+				graph_snp.write(
+					"%s\t%s\t0\t%d\n" % (sample_key, snp_id, len(g_patient.dbg.node[g_reference.snp[snp_id][1]]['read_list_n'])))
 
 
 def annotate_and_output_results(g_patient, g_reference, output_results):
@@ -231,14 +243,18 @@ if __name__ == "__main__":
 	parser = ArgumentParser()
 	parser.add_argument('--kmer_length', help='Size of k-mer words', default=20, type=int, required=False)
 	parser.add_argument('--fastq', help='FASTQ files to analyse (sep="," ; with all the path)', required=False, type=str)
-	parser.add_argument('--experiment', help='Experiment name, unique for one study (used for library construction)', required=True, type=str)
+	parser.add_argument('--experiment', help='Experiment name, unique for one study (used for library construction)', required=True,
+						type=str)
 	parser.add_argument('--fasta', help='FASTA file of reference sequences (with all the path)', required=False, type=str)
 	parser.add_argument('--snp', help='SNP file for reference sequence (with all the path)', required=False, type=str)
-	parser.add_argument('--min_support_percentage', help='Minimum of read support percentage for node filter', default=3.0, type=float, required=False)
+	parser.add_argument('--min_support_percentage', help='Minimum of read support percentage for node filter', default=3.0, type=float,
+						required=False)
 	parser.add_argument('--samplekey', help='Unique sample key', default="", type=str, required=True)
-	parser.add_argument('--npermutations', help="number of permutations / random samples to perform", default=1000, type=int, required=False)
+	parser.add_argument('--npermutations', help="number of permutations / random samples to perform", default=1000, type=int,
+						required=False)
 	parser.add_argument("--destdir", help="Output directory", default="output/gml", type=str, required=False)
 	parser.add_argument("--export", help="Whether to export graphs to GML", action='store_true')
+	parser.add_argument("--max_len", help="Maximum allowed indel length", default=5, type=int)
 	parser.add_argument("--pvalue", help="P value threshold for significance", type=float, default=0.001)
 	parser.add_argument("--results", help="Output (as JSON) results file  ", type=str, default=None)
 
@@ -256,5 +272,6 @@ if __name__ == "__main__":
 		destination_directory=args.destdir,
 		export_gml=args.export,
 		p_value_threshold=args.pvalue,
-		output_results=args.results
+		output_results=args.results,
+		max_len=args.max_len
 	)

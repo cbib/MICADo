@@ -91,7 +91,7 @@ rule run_micado:
                                 --fasta {input.fasta_ref} \
                                 --samplekey {SAMPLEKEY} \
                                 --snp {input.snp_data} \
-                                --npermutations 300 --pvalue 0.1 \
+                                --npermutations 1000 --pvalue 0.01 \
                                 --results {output.micado_results} 2> {log}
 
 

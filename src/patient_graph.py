@@ -32,7 +32,7 @@ class PatientGraph:
 			logger.info("Considering file %s for fastq %s", f, fastq_id)
 			comp = 0
 			for record_s in SeqIO.parse(f, "fastq", generic_dna):
-				self.n_reads+=1
+				self.n_reads += 1
 				sequence = str(record_s.seq)
 				comp += 1
 				# For tips search
@@ -79,7 +79,7 @@ class PatientGraph:
 		self.dbg_refrm.remove_edges_from(g_reference.edges())
 
 	# Creation of the altertion list 
-	def alteration_list_init(self, G_ref, k, min_support):
+	def alteration_list_init(self, G_ref, k, min_support, max_len):
 		self.alteration_list = []
 		# Only nodes in dbg_refrm & G_ref and with in degree > 0 for end nodes and out degree > 0 for start nodes  
 		G_ref_nodes_set = set(G_ref.nodes())
@@ -95,8 +95,10 @@ class PatientGraph:
 		in_degree_g_ref_dict = G_ref.in_degree()
 		start_g_ref = [key for key, v in G_ref.in_degree().items() if in_degree_g_ref_dict[key] == 0][0]  # only one in TP53
 		end_g_ref = [key for key, v in G_ref.out_degree().items() if out_degree_g_ref_dict[key] == 0][0]  # only one in TP53
-		end_tips_list = [key for key, v in self.dbgclean.out_degree().items() if out_degree_g_testclean_dict[key] == 0 and key not in G_ref and key in self.kmer_end_set]
-		start_tips_list = [key for key, v in self.dbgclean.in_degree().items() if in_degree_g_testclean_dict[key] == 0 and key not in G_ref and key in self.kmer_start_set]
+		end_tips_list = [key for key, v in self.dbgclean.out_degree().items() if
+						 out_degree_g_testclean_dict[key] == 0 and key not in G_ref and key in self.kmer_end_set]
+		start_tips_list = [key for key, v in self.dbgclean.in_degree().items() if
+						   in_degree_g_testclean_dict[key] == 0 and key not in G_ref and key in self.kmer_start_set]
 		shared_nodes_start.extend(start_tips_list)
 		shared_nodes_end.extend(end_tips_list)
 		# Search for alternative paths
@@ -117,10 +119,12 @@ class PatientGraph:
 					# Reference path choice
 					# Replace start/end if it's a tips
 					if node_start not in G_ref:
-						logger.critical("The node %s (read support : %d) is a tips(start)", node_start, len(self.dbg_refrm.node[alternative_path[1]]['read_list_n']))
+						logger.critical("The node %s (read support : %d) is a tips(start)", node_start,
+										len(self.dbg_refrm.node[alternative_path[1]]['read_list_n']))
 						node_start = start_g_ref
 					if node_end not in G_ref:
-						logger.critical("The node %s (read support : %d) is a tips(end)", node_end, len(self.dbg_refrm.node[alternative_path[1]]['read_list_n']))
+						logger.critical("The node %s (read support : %d) is a tips(end)", node_end,
+										len(self.dbg_refrm.node[alternative_path[1]]['read_list_n']))
 						node_end = end_g_ref
 					reference_path_list = []
 					reference_path = ""
@@ -165,8 +169,14 @@ class PatientGraph:
 						read_set_pathRef_G_sample.append(set(self.dbg.node[node]['read_list_n']))
 					if condition == 0:
 						intersect_allnodes_pathRef_G_sample = set.intersection(*read_set_pathRef_G_sample)
-					self.alteration_list.append(ALT(reference_path, alternative_path, len(intersect_allnodes_pathRef_G_sample), len(intersect_allnodes_pathAlt_G_sample), k,
-													max(self.total_coverage_node(node_start), self.total_coverage_node(node_end)) * min_support / 100))
+					if abs(len(reference_path) - len(alternative_path)) > max_len:
+						logger.critical("Disregarding large alteration %s vs %s", reference_path, alternative_path)
+						continue
+
+					self.alteration_list.append(ALT(reference_path, alternative_path, len(intersect_allnodes_pathRef_G_sample),
+													len(intersect_allnodes_pathAlt_G_sample), k,
+													max(self.total_coverage_node(node_start),
+														self.total_coverage_node(node_end)) * min_support / 100))
 				# Replace start/end if it was a tips
 				node_end = end_node
 				node_start = start_node
@@ -184,7 +194,8 @@ class PatientGraph:
 		node_dict = {"end": collections.defaultdict(list), "start": collections.defaultdict(list)}
 		for i_alteration in range(0, len(self.significant_alteration_list)):
 			node_start = self.significant_alteration_list[i_alteration].reference_path[0]
-			node_end = self.significant_alteration_list[i_alteration].reference_path[len(self.significant_alteration_list[i_alteration].reference_path) - 1]
+			node_end = self.significant_alteration_list[i_alteration].reference_path[
+				len(self.significant_alteration_list[i_alteration].reference_path) - 1]
 			node_dict["start"][node_start].append(i_alteration)
 			node_dict["end"][node_end].append(i_alteration)
 		for extremity in node_dict.keys():
