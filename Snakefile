@@ -15,6 +15,7 @@ GATK="java -jar bin/GenomeAnalysisTK.jar"
 PICARD_DICT="java -jar bin/picard-1.140.jar CreateSequenceDictionary"
 PICARD_RG="java -jar bin/picard-1.140.jar AddOrReplaceReadGroups"
 
+MICADO_N_PERMUTATIONS=10
 include: "Snakefile_tools"
 
 
@@ -22,6 +23,7 @@ include: "Snakefile_tools"
 AP53SAMPLE="N_534_1"
 AP53SAMPLE="C_158_1"
 AP53SAMPLE="N_158_1"
+AP53SAMPLE="N_193_1"
 
 rule view_GMAP_align_p53_sample:
     input: bam=XPDIR+"alignments/GMAP/"+AP53SAMPLE+"_on_NM_000546_5.sorted.bam",ref_fasta=REFFASTA
