@@ -20,6 +20,7 @@ logger.info("Will import")
 from reference_graph import ReferenceGraph as RG
 import visualization as VISU
 from patient_graph import PatientGraph as PG
+from randomreadsgraph import RandomReadsGraph as RRG
 
 logger.info("Import finished")
 
@@ -28,9 +29,10 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 				   fasta_file=None, snp_file=None, experiment_name=None,
 				   destination_directory=".", export_gml=False, output_results=None):
 	if experiment_name == "TP53":
-		from randomreadsgraph_TP53 import RandomReadsGraph as RRG
+		import seq_lib_TP53 as seq_lib_module
 	else:
-		from randomreadsgraph import RandomReadsGraph as RRG
+		import seq_lib as seq_lib_module
+
 
 	# g_reference construction
 	logger.info("Will build reference graph with k==%d and fasta=%s & snp=%s", kmer_length, fasta_file, snp_file)
@@ -47,7 +49,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 							  snp_file=snp_file,
 							  experiment_name=experiment_name, min_support_percentage=min_support_percentage, n_permutations=n_permutations,
 							  destination_directory=destination_directory, export_gml=export_gml, p_value_threshold=p_value_threshold,
-							  output_results=output_results)
+							  output_results=output_results, max_len=max_len)
 
 	# g_patient construction
 	logger.info("Will build patient graph for %s with k==%d and minimum support = %dpct", fastq_files, kmer_length, min_support_percentage)
@@ -68,7 +70,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 							  snp_file=snp_file,
 							  experiment_name=experiment_name, min_support_percentage=min_support_percentage, n_permutations=n_permutations,
 							  destination_directory=destination_directory, export_gml=export_gml, p_value_threshold=p_value_threshold,
-							  output_results=output_results)
+							  output_results=output_results, max_len=max_len)
 
 	# Some prints for stats 
 	dir_stat = get_or_create_dir("output/statistics")
@@ -104,7 +106,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 	g_patient.graph_rmRefEdges_init(g_patient.dbgclean, g_reference.dbg)
 
 	# search for alternative paths in dbg_refrm (.alteration_list creation)
-	g_patient.alteration_list_init(g_reference.dbg, kmer_length, min_support_percentage,max_len)
+	g_patient.alteration_list_init(g_reference.dbg, kmer_length, min_support_percentage, max_len)
 
 	### Permutation test ###
 	logger.info("Will create random graphs")
@@ -113,22 +115,22 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 		all_possible_kmers.update(an_alt.reference_path)
 		all_possible_kmers.update(an_alt.alternative_path)
 
-	for i, j in time_iterator(range(0, n_permutations), logger, msg_prefix="permuting"):
-		g_random = RRG(g_patient.coverage, kmer_length, restrict_to=all_possible_kmers)
-		for i_alteration in range(0, len(g_patient.alteration_list)):
-
-			ref_path = g_patient.alteration_list[i_alteration].reference_path
-			alt_path = g_patient.alteration_list[i_alteration].alternative_path
+	for _, _ in time_iterator(range(0, n_permutations), logger, msg_prefix="permuting"):
+		g_random = RRG(g_patient.coverage, kmer_length, restrict_to=all_possible_kmers, seq_lib_module=seq_lib_module)
+		for i in range(0, len(g_patient.alteration_list)):
+			i_alteration = g_patient.alteration_list[i]
+			ref_path = i_alteration.reference_path
+			alt_path = i_alteration.alternative_path
 			g_random_data = g_random.check_path(ref_path,
 												alt_path,
-												g_patient.alteration_list[i_alteration].min_coverage)
-			g_patient.alteration_list[i_alteration].random_ratio_list.append(g_random_data[0])
-			g_patient.alteration_list[i_alteration].random_reference_count_list.append(g_random_data[1])
-			g_patient.alteration_list[i_alteration].random_alternative_count_list.append(g_random_data[2])
+												i_alteration.min_coverage)
+			i_alteration.random_ratio_list.append(g_random_data[0])
+			i_alteration.random_reference_count_list.append(g_random_data[1])
+			i_alteration.random_alternative_count_list.append(g_random_data[2])
 
 	logger.info("Will generate p-values for %d possible alterations", len(g_patient.alteration_list))
-	for i_alteration in range(0, len(g_patient.alteration_list)):
-		g_patient.alteration_list[i_alteration].pvalue_init()
+	for i in range(0, len(g_patient.alteration_list)):
+		g_patient.alteration_list[i].pvalue_init()
 
 	g_patient.significant_alteration_list_init(p_value_threshold=p_value_threshold)
 
@@ -136,23 +138,23 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 	if len(g_patient.significant_alteration_list) > 1:
 		g_patient.multiple_alternative_path_filter()
 
-	## Stat 
+	# Stat
 	# alteration stat
 	alt_stat_file = open(dir_stat + "/alt_stat_file" + sample_key + ".tsv", 'w')
-	for i_alteration in range(0, len(g_patient.alteration_list)):
-		if g_patient.alteration_list[i_alteration].pvalue_ratio <= 1:
+	for i in range(0, len(g_patient.alteration_list)):
+		if g_patient.alteration_list[i].pvalue_ratio <= 1:
 			alt_stat_file.write("%d\t%s\t%d\t%s\t%s\t%s\t%s\t%f\t%f\t%s\t%s\n" % (
-				i_alteration + 1,
+				i + 1,
 				sample_key,
 				g_patient.coverage['total'],
-				g_patient.alteration_list[i_alteration].reference_sequence,
-				g_patient.alteration_list[i_alteration].alternative_sequence,
-				g_patient.alteration_list[i_alteration].reference_read_count,
-				g_patient.alteration_list[i_alteration].alternative_read_count,
-				g_patient.alteration_list[i_alteration].ratio_read_count,
-				g_patient.alteration_list[i_alteration].pvalue_ratio,
-				str(g_patient.alteration_list[i_alteration].zscore),
-				"\t".join(map(str, g_patient.alteration_list[i_alteration].random_ratio_list))
+				g_patient.alteration_list[i].reference_sequence,
+				g_patient.alteration_list[i].alternative_sequence,
+				g_patient.alteration_list[i].reference_read_count,
+				g_patient.alteration_list[i].alternative_read_count,
+				g_patient.alteration_list[i].ratio_read_count,
+				g_patient.alteration_list[i].pvalue_ratio,
+				str(g_patient.alteration_list[i].zscore),
+				"\t".join(map(str, g_patient.alteration_list[i].random_ratio_list))
 			))
 
 	# For visualisation

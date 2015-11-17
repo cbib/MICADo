@@ -1,38 +1,46 @@
-# For one PCR amplicon
-# !/usr/bin/env python
+#!/usr/bin/env python
 # coding=utf8
 import collections
 import networkx as nx
 from helpers.logger import init_logger
-import seq_lib as SL
 
 logger = init_logger("RANDGRAPH")
 
+cached_kmers = {}
+cached_pairs = {}
+KMER_UID = {}
+curr_uid = 0
+last_sample = None
+
 
 class RandomReadsGraph:
-	def __init__(self, coverage_dict, k, restrict_to={}):
-		self.coverage = sum(coverage_dict.values())
+	def __init__(self, coverage_dict, k, seq_lib_module, restrict_to=None):
+		global cached_kmers, curr_uid, last_sample
+		self.coverage_dict = coverage_dict
 		self.kmer_map = collections.defaultdict(set)
-		self.restrict_to = set(restrict_to)
+		self.restrict_to = set(restrict_to) if restrict_to else None
 		self.possible_pairs = set()
-		read_list = SL.sampling(self.coverage)
+		read_list = seq_lib_module.sampling(self.coverage_dict)
 		self.dbg = nx.DiGraph()
+
 		for i_read in range(0, len(read_list)):
 			this_read = read_list[i_read]
-			kkmers = [this_read[i:i + k] for i in xrange(len(this_read) - k) if this_read[i:i + k] in self.restrict_to]
+			if self.restrict_to:
+				kkmers = [this_read[i:i + k] for i in xrange(len(this_read) - k) if this_read[i:i + k] in self.restrict_to]
+			else:
+				kkmers = [this_read[i:i + k] for i in xrange(len(this_read) - k) if this_read[i:i + k]]
 			kmers_pairs = [(f1, f2) for f1, f2 in zip(kkmers, kkmers[1:])]
+
 			for kmer in kkmers:
 				self.kmer_map[kmer].add(i_read)
+
 			self.possible_pairs.update(kmers_pairs)
 
 	def build_read_set_for_path(self, a_path, verbose=False):
-		# a_path=map(lambda x:KMER_UID[x],a_path)
 		missing_kmers = set(a_path).difference(self.kmer_map)
 		if len(missing_kmers):
 			# logger.critical("Completely missing kmer (%d): %s", len(missing_kmers), missing_kmers)
 			return set()
-
-		# current_set = set(self.kmer_map[a_path[0]]['read_list_n'])
 		current_set = set(self.kmer_map[a_path[0]])
 		if verbose:
 			print len(current_set)
@@ -40,14 +48,9 @@ class RandomReadsGraph:
 		assert isinstance(current_set, set)
 
 		for i, a_node in enumerate(a_path[1:]):
-			# if not self.dbg.has_edge(a_path[i], a_node):
-			# 	logger.critical("Missing edge between %s -> %s",a_path[i],a_node)
-
 			if not (a_path[i], a_node) in self.possible_pairs:
 				logger.critical("Missing edge between %s -> %s. Actual read set is of size %d", a_path[i], a_node, len(current_set))
 
-
-			# current_set.intersection_update(self.dbg.node[a_node]['read_list_n'])
 			current_set.intersection_update(self.kmer_map[a_node])
 
 			if not (a_path[i], a_node) in self.possible_pairs:
@@ -68,6 +71,7 @@ class RandomReadsGraph:
 		# if len(ref_path_read_set) == 0:
 		# 	logger.critical("Empty REF read set for path %s", reference_path)
 		if len(alt_path_read_set) + len(ref_path_read_set) <= min_cov:
+			logger.critical("Total coverage %d below min_cov %d", len(alt_path_read_set) + len(ref_path_read_set), min_cov)
 			ratio = 0.0
 		else:
 			ratio = float(len(alt_path_read_set)) / (len(alt_path_read_set) + len(ref_path_read_set))

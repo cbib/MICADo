@@ -139,14 +139,20 @@ class PatientGraph:
 					# if there is multiple references paths, check the largest read intersection or the smallest reference tags
 					# if no clear criteria for choice is found we keep the first reference path
 					if len(reference_path_list) > 1:
+						logger.debug("Trying to identify actual reference")
 						reference_path = reference_path_list[0]
 						size_biggest_intersection = len(list(set(alternative_path) & set(reference_path)))
+						logger.debug("Selected ref path num 0 with size %d", size_biggest_intersection)
+						# reference_path = None
+						# size_biggest_intersection = 0
+						# for i_reference_path in range(0, len(reference_path_list)):
 						for i_reference_path in range(1, len(reference_path_list)):
 							curr_reference_path = reference_path_list[i_reference_path]
-							size_intersection = list(set(alternative_path) & set(curr_reference_path))
+							size_intersection = len(list(set(alternative_path) & set(curr_reference_path)))
 							if size_intersection > size_biggest_intersection:
 								size_biggest_intersection = size_intersection
 								reference_path = curr_reference_path
+								logger.debug("Switching to ref path num %d with size %d", i_reference_path, size_biggest_intersection)
 							elif size_intersection == size_biggest_intersection:
 								size_reference_path = len(reference_path)
 								size_curr_reference_path = len(curr_reference_path)
@@ -156,6 +162,10 @@ class PatientGraph:
 								if delta_2 < delta_1:
 									size_biggest_intersection = size_intersection
 									reference_path = curr_reference_path
+									logger.debug("Switching to ref path num %d with size %d and deltas: %d--%d ", i_reference_path,
+												 size_biggest_intersection, delta_2, delta_1)
+						assert reference_path
+						assert size_biggest_intersection
 					else:
 						reference_path = reference_path_list[0]
 					# Read intersection of all nodes in the reference path for g_patient 
@@ -164,7 +174,9 @@ class PatientGraph:
 					for node in reference_path:
 						if node not in self.dbg:
 							condition = 1
-							intersect_allnodes_pathRef_G_sample = "0"
+							logger.critical("Identified node %s absent from the input DBG", node)
+							intersect_allnodes_pathRef_G_sample = "0"  # Weird smoothing, TODO check with justine if required
+							# intersect_allnodes_pathRef_G_sample = []
 							break
 						read_set_pathRef_G_sample.append(set(self.dbg.node[node]['read_list_n']))
 					if condition == 0:
