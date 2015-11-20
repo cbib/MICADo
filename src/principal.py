@@ -185,8 +185,8 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 		nx.write_gml(g_patient_clean_merged_visu, destination_directory + "/" + merged_cleaned_graph_name + str(kmer_length) + ".gml")
 
 	# Annotation
-	if experiment_name == "TP53":
-		annotate_and_output_results(g_patient, g_reference, output_results)
+	# if experiment_name == "TP53":
+	annotate_and_output_results(g_patient, g_reference, output_results)
 	# SNP
 	dir_stat = get_or_create_dir("output/snp")
 	# graph stat

@@ -19,18 +19,19 @@ positive_controls = ["C_169_1", "C_169_2", "C_207_1", "C_207_2", "C_221_1", "C_2
 					 "N_320_1", "N_320_2", "N_340_1", "N_340_2", "N_341_1", "N_341_2"]
 
 
-def micado_multi(sample_key, n_perm=25):
-	kmer_length = 18
+def micado_multi(sample_key, n_perm=100):
+	kmer_length = 16
+	max_len = 10
 	# build reference graph
 	g_reference = reference_graph.ReferenceGraph(kmer_length, fasta_file='data/reference/NM_000546.5.fasta',
 												 snp_file='data/reference/snp_TP53.tab')
 	# build patient graph
-	g_patient = patient_graph.PatientGraph(['data/tp53_analysis/reads/%s.fastq' % sample_key], kmer_length)
+	g_patient = patient_graph.PatientGraph(['data/fastq/TP53/%s.fastq' % sample_key], kmer_length)
 	g_patient.graph_cleaned_init(3.0)
 	# copy g_patient cleaned and remove reference edges on it (.dbg_refrm creation)
 	g_patient.graph_rmRefEdges_init(g_patient.dbgclean, g_reference.dbg)
 	# search for alternative paths in dbg_refrm (.alteration_list creation)
-	g_patient.alteration_list_init(g_reference.dbg, kmer_length, 3.0, 10)
+	g_patient.alteration_list_init(g_reference.dbg, kmer_length, 3.0, max_len)
 
 	# TODO build real set of possible k-mers
 	all_possible_kmers = set()
@@ -56,9 +57,9 @@ def micado_multi(sample_key, n_perm=25):
 			edit_ops = Levenshtein.editops(ref_seq, patient_seq)
 			lonely_ratio = putative_alt.ratio_read_count
 			lonely_ratio_dict[alt_i] = lonely_ratio
-			# print n_perm, alt_i, lonely_ratio, edit_ops
+			print n_perm, alt_i, lonely_ratio, edit_ops
 			for e in edit_ops:
-				# print "Considering atomic edit op", e
+				print "Considering atomic edit op", e
 				transformed = Levenshtein.apply_edit([e], ref_seq, patient_seq)
 				ratio_random = rg.check_path(kmerize(ref_seq, kmer_length), kmerize(transformed, kmer_length),
 											 min_cov=putative_alt.min_coverage)
@@ -95,7 +96,7 @@ class TestRandomReadsGraph(TestCase):
 
 	def test_op_edits_for_N_193_1(self):
 		ref = "ATGCCAGAGGCTGCTCCCCCCGTGGCCCCTGCACCAGCAGCTCC"
-		alt = "ATGCCAGAGGCTGCTCCCGCGTGGCCCTGCACCAGCAGCTCC"
+		alt = "ATGCCAGAGGCTGCTCCGCGTGGCCCTGCACCAGCAGCTCC"
 		# matcher = difflib.SequenceMatcher(a=ref, b=alt)
 		# print matcher.get_opcodes()
 		# op = [x[0] for x in matcher.get_opcodes() if x[0] != 'equal']
@@ -147,3 +148,5 @@ class TestRandomReadsGraph(TestCase):
 # found_ratios =
 # ratio_random = rg.check_path(kmerize(ref, 18), kmerize(alt, 18), min_cov=1)
 # print ratio_random
+
+micado_multi("C_256_1")

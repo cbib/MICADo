@@ -74,6 +74,7 @@ else:
 
 # Sampling fonction from a coverage dict (with keys 'N' et 'C')
 def sampling(coverage):
+	coverage = 1000
 	read_sampling = []
 	read_sampling_for_remainder = []
 	read_number_by_sample = coverage / len(read_library)

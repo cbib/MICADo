@@ -85,7 +85,7 @@ def alteration_list_to_transcrit_mutation(g_test, g_ref):
 				logger.critical("More than one alteration: for %s", compact_cigard)
 				alteration_description['is_multi']=True
 				# continue
-			alteration = alt_seq[compact_cigard[0]:compact_cigard[0] + 1]
+			alteration = alt_seq[compact_cigard[0]:compact_cigard[0] + compact_cigard[2]]
 			alteration_description['end'] = alteration_description['start']
 			alteration_description['alt_sequence'] = alteration
 			annotated_alterations.append(alteration_description)

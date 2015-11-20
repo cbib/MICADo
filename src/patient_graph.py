@@ -7,7 +7,7 @@ import networkx as nx
 from Bio import pairwise2
 import collections
 from helpers.logger import init_logger
-
+import Levenshtein
 from alteration import alteration as ALT
 
 # from alteration import alteration as ALT
@@ -79,7 +79,7 @@ class PatientGraph:
 		self.dbg_refrm.remove_edges_from(g_reference.edges())
 
 	# Creation of the altertion list 
-	def alteration_list_init(self, G_ref, k, min_support, max_len):
+	def alteration_list_init(self, G_ref, kmer_length, min_support, max_len):
 		self.alteration_list = []
 		# Only nodes in dbg_refrm & G_ref and with in degree > 0 for end nodes and out degree > 0 for start nodes  
 		G_ref_nodes_set = set(G_ref.nodes())
@@ -184,11 +184,35 @@ class PatientGraph:
 					if abs(len(reference_path) - len(alternative_path)) > max_len:
 						logger.critical("Disregarding large alteration %s vs %s", reference_path, alternative_path)
 						continue
-
-					self.alteration_list.append(ALT(reference_path, alternative_path, len(intersect_allnodes_pathRef_G_sample),
-													len(intersect_allnodes_pathAlt_G_sample), k,
+					# Decompose path if it is multiple
+					reference_sequence = ALT.kmerpathToSeq(reference_path,kmer_length)
+					multi_alternative_sequence = ALT.kmerpathToSeq(alternative_path,kmer_length)
+					edit_ops = Levenshtein.editops(reference_sequence, multi_alternative_sequence)
+					my_iterator = iter(enumerate(edit_ops))
+					for e_i,e in my_iterator :
+						if e[0]=='replace':
+							atomic_sequence = Levenshtein.apply_edit([e], reference_sequence, multi_alternative_sequence)
+							print atomic_sequence
+							atomic_path = ALT.kmerize(atomic_sequence,kmer_length)
+						else:
+							end_e_i = e_i
+							while (end_e_i<len(edit_ops) and edit_ops[end_e_i][0] == e[0] and (e[1] == edit_ops[end_e_i][1] or e[2] == edit_ops[end_e_i][2])):
+								end_e_i += 1
+								try:
+									my_iterator.next()
+									print "j avance"
+								except StopIteration:
+									print "fini!"
+							atomic_sequence = Levenshtein.apply_edit(edit_ops[e_i:end_e_i+1], reference_sequence, multi_alternative_sequence)
+							print atomic_sequence
+							atomic_path = ALT.kmerize(atomic_sequence,kmer_length)						
+						# record each atomic alteration
+						self.alteration_list.append(ALT(reference_path, alternative_path, reference_sequence, atomic_sequence,
+													len(intersect_allnodes_pathRef_G_sample),
+													len(intersect_allnodes_pathAlt_G_sample), kmer_length,
 													max(self.total_coverage_node(node_start),
 														self.total_coverage_node(node_end)) * min_support / 100))
+
 				# Replace start/end if it was a tips
 				node_end = end_node
 				node_start = start_node
@@ -222,3 +246,4 @@ class PatientGraph:
 							to_remove.append(self.significant_alteration_list[i_alteration])
 		for alteration in set(to_remove):
 			self.significant_alteration_list.remove(alteration)
+
