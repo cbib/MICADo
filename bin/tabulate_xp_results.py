@@ -2,7 +2,6 @@ import itertools
 
 __author__ = 'hayssam'
 import difflib
-import numpy as np
 import os
 import re
 import simplejson as json

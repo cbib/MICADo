@@ -19,14 +19,15 @@ positive_controls = ["C_169_1", "C_169_2", "C_207_1", "C_207_2", "C_221_1", "C_2
 					 "N_320_1", "N_320_2", "N_340_1", "N_340_2", "N_341_1", "N_341_2"]
 
 
-def micado_multi(sample_key, n_perm=100):
-	kmer_length = 16
+def micado_multi(sample_key, n_perm=25):
+	kmer_length = 18
 	max_len = 10
 	# build reference graph
-	g_reference = reference_graph.ReferenceGraph(kmer_length, fasta_file='data/reference/NM_000546.5.fasta',
+	g_reference = reference_graph.ReferenceGraph(kmer_length,
+												 fasta_file='data/reference/NM_000546.5.fasta',
 												 snp_file='data/reference/snp_TP53.tab')
 	# build patient graph
-	g_patient = patient_graph.PatientGraph(['data/fastq/TP53/%s.fastq' % sample_key], kmer_length)
+	g_patient = patient_graph.PatientGraph(['data/tp53_analysis/reads/%s.fastq' % sample_key], kmer_length)
 	g_patient.graph_cleaned_init(3.0)
 	# copy g_patient cleaned and remove reference edges on it (.dbg_refrm creation)
 	g_patient.graph_rmRefEdges_init(g_patient.dbgclean, g_reference.dbg)
@@ -57,11 +58,12 @@ def micado_multi(sample_key, n_perm=100):
 			edit_ops = Levenshtein.editops(ref_seq, patient_seq)
 			lonely_ratio = putative_alt.ratio_read_count
 			lonely_ratio_dict[alt_i] = lonely_ratio
-			print n_perm, alt_i, lonely_ratio, edit_ops
+			# print n_perm, alt_i, lonely_ratio, edit_ops
 			for e in edit_ops:
-				print "Considering atomic edit op", e
+				# print "Considering atomic edit op", e
 				transformed = Levenshtein.apply_edit([e], ref_seq, patient_seq)
-				ratio_random = rg.check_path(kmerize(ref_seq, kmer_length), kmerize(transformed, kmer_length),
+				ratio_random = rg.check_path(kmerize(ref_seq, kmer_length),
+											 kmerize(transformed, kmer_length),
 											 min_cov=putative_alt.min_coverage)
 				random_ratio_dict[(alt_i, (e,))].append(ratio_random[0])
 				alt_seq_dict[(alt_i, (e,))] = transformed
@@ -96,7 +98,7 @@ class TestRandomReadsGraph(TestCase):
 
 	def test_op_edits_for_N_193_1(self):
 		ref = "ATGCCAGAGGCTGCTCCCCCCGTGGCCCCTGCACCAGCAGCTCC"
-		alt = "ATGCCAGAGGCTGCTCCGCGTGGCCCTGCACCAGCAGCTCC"
+		alt = "ATGCCAGAGGCTGCTCCCGCGTGGCCCTGCACCAGCAGCTCC"
 		# matcher = difflib.SequenceMatcher(a=ref, b=alt)
 		# print matcher.get_opcodes()
 		# op = [x[0] for x in matcher.get_opcodes() if x[0] != 'equal']
@@ -122,6 +124,12 @@ class TestRandomReadsGraph(TestCase):
 	def test_build_read_set_for_path_N_193_1(self):
 		micado_multi("N_193_1")
 
+	def test_build_read_set_for_path_N_183_1(self):
+		micado_multi("N_183_1") # tips
+
+	def test_C_221_2(self):
+		micado_multi("C_221_2") # tips
+
 	def test_build_read_set_for_path_N_192_2(self):
 		micado_multi("N_192_2")
 
@@ -130,6 +138,9 @@ class TestRandomReadsGraph(TestCase):
 
 	def test_build_read_set_for_path_N_215_1(self):
 		micado_multi("N_215_1")
+
+	def test_build_read_set_for_path_N_272_1(self):
+		micado_multi("N_272_1")
 
 	def test_build_read_set_for_all_negative_controls(self):
 		for neg_sample in negative_controls:
@@ -140,7 +151,16 @@ class TestRandomReadsGraph(TestCase):
 		for pos_sample in positive_controls:
 			print "Processing sample", pos_sample
 			micado_multi(pos_sample)
-
+	def test_rrg_creation_speed(self):
+		import seq_lib_TP53 as seq_lib
+		for i in range(10):
+			rg = randomreadsgraph.RandomReadsGraph({"N": 0, "C": 0}, k=18, seq_lib_module=seq_lib, restrict_to=None)
+			print i
+	def test_sampling_speed(self):
+		import seq_lib_TP53 as seq_lib
+		for i in range(10):
+			read_list = seq_lib.sampling({"N":0,"C":0})
+			print i
 # ref = "ATGCCAGAGGCTGCTCCCCCCGTGGCCCCTGCACCAGCAGCTCC"
 # alt = "ATGCCAGAGGCTGCTCCCGCGTGGCCCTGCACCAGCAGCTCC"
 #
@@ -148,5 +168,3 @@ class TestRandomReadsGraph(TestCase):
 # found_ratios =
 # ratio_random = rg.check_path(kmerize(ref, 18), kmerize(alt, 18), min_cov=1)
 # print ratio_random
-
-micado_multi("C_256_1")

@@ -13,10 +13,16 @@ curr_uid = 0
 last_sample = None
 
 
+def kmerize_iter(s, k):
+	for i in range(0, len(s) - k):
+		yield s[i:i + k]
+
+
 class RandomReadsGraph:
 	def __init__(self, coverage_dict, k, seq_lib_module, restrict_to=None):
 		global cached_kmers, curr_uid, last_sample
 		self.coverage_dict = coverage_dict
+		# TODO optimize indexation
 		self.kmer_map = collections.defaultdict(set)
 		self.restrict_to = set(restrict_to) if restrict_to else None
 		self.possible_pairs = set()
@@ -35,6 +41,7 @@ class RandomReadsGraph:
 				self.kmer_map[kmer].add(i_read)
 
 			self.possible_pairs.update(kmers_pairs)
+		# print len(self.kmer_map), np.mean(map(len, self.kmer_map.values()))
 
 	def build_read_set_for_path(self, a_path, verbose=False):
 		missing_kmers = set(a_path).difference(self.kmer_map)

@@ -15,7 +15,7 @@ GATK="java -jar bin/GenomeAnalysisTK.jar"
 PICARD_DICT="java -jar bin/picard-1.140.jar CreateSequenceDictionary"
 PICARD_RG="java -jar bin/picard-1.140.jar AddOrReplaceReadGroups"
 
-MICADO_N_PERMUTATIONS=10
+MICADO_N_PERMUTATIONS=50
 include: "Snakefile_tools"
 
 

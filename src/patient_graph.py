@@ -1,19 +1,69 @@
 #!/usr/bin/env python
 # coding=utf8
+from itertools import ifilter
+from operator import itemgetter
 import re
 from Bio import SeqIO
 from Bio.Alphabet import generic_dna
+import Levenshtein
 import networkx as nx
 from Bio import pairwise2
+from scipy.spatial.distance import euclidean, cdist
+import numpy as np
 import collections
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.neighbors import NearestNeighbors
 from helpers.logger import init_logger
-import Levenshtein
 from alteration import alteration as ALT
 
 # from alteration import alteration as ALT
 logger = init_logger("Patient graph")
 
 pattern = re.compile('.+\/(\w+)')
+
+
+def identify_anchor_kmer_in_reference_graph_by_composition(reference_graph, kmer_to_anchor):
+	bimer_vectorizer = CountVectorizer(ngram_range=(1, 1), analyzer='char')
+	anchor_vec = bimer_vectorizer.fit_transform([kmer_to_anchor]).todense().A
+	print anchor_vec
+	ref_nodes = reference_graph.nodes()
+	ref_vec = bimer_vectorizer.transform(ref_nodes).todense().A
+	print ref_vec
+	# find closest
+	distances = cdist(anchor_vec, ref_vec)
+	min_index = np.argmin(distances)
+	min_dist = distances[0, min_index]
+	other_min_index = [(i, x) for i, x in enumerate(distances[0]) if x == min_dist]
+	print [ref_nodes[i] for i, x in other_min_index], min_dist, kmer_to_anchor
+
+
+def identify_anchor_kmer_in_reference_graph(reference_graph, kmer_to_anchor, leftmost=None, rightmost=None, path_length=None):
+	"""
+
+	:type reference_graph: nx.DiGraph
+	"""
+	toposort = {v: k for k, v in enumerate(nx.topological_sort(reference_graph))}
+
+	nodes_to_consider = reference_graph.nodes()
+	if rightmost:
+		idx = toposort[rightmost]
+		nodes_to_consider = ifilter(lambda x: toposort[x] <= idx, nodes_to_consider)
+	# print "Max is ", idx
+	if leftmost:
+		idx = toposort[leftmost]
+		nodes_to_consider = ifilter(lambda x: toposort[x] >= idx, nodes_to_consider)
+	# print "Min is ", idx
+
+	node_dists = [(node, Levenshtein.distance(node, kmer_to_anchor), Levenshtein.editops(node, kmer_to_anchor)) for node in
+				  nodes_to_consider]
+	min_dist = min(node_dists, key=itemgetter(1))[1]
+	if rightmost:
+		score_func = lambda x: (x[1] - min_dist) + abs(toposort[x[0]] - (toposort[rightmost] - path_length))
+	elif leftmost:
+		score_func = lambda x: (x[1] - min_dist) + abs(toposort[x[0]] - (toposort[leftmost] + path_length))
+	dist_sorted = sorted(node_dists, key=score_func)
+	# identify the rightmost node with minimal distance
+	return dist_sorted[0][0]
 
 
 class PatientGraph:
@@ -121,11 +171,20 @@ class PatientGraph:
 					if node_start not in G_ref:
 						logger.critical("The node %s (read support : %d) is a tips(start)", node_start,
 										len(self.dbg_refrm.node[alternative_path[1]]['read_list_n']))
-						node_start = start_g_ref
+						anchor = identify_anchor_kmer_in_reference_graph(G_ref, node_start, rightmost=node_end,
+																		 path_length=len(alternative_path))
+						logger.critical("Node %s anchored to %s", node_start, anchor)
+						node_start = anchor
+
 					if node_end not in G_ref:
 						logger.critical("The node %s (read support : %d) is a tips(end)", node_end,
 										len(self.dbg_refrm.node[alternative_path[1]]['read_list_n']))
-						node_end = end_g_ref
+						anchor = identify_anchor_kmer_in_reference_graph(G_ref, node_start, leftmost=node_start,
+																		 path_length=len(alternative_path))
+						logger.critical("Node %s anchored to %s", node_end, anchor)
+						node_end = anchor
+
+					# node_end=end_g_ref
 					reference_path_list = []
 					reference_path = ""
 					for i_path in nx.all_simple_paths(G_ref, node_start, node_end):
@@ -185,33 +244,38 @@ class PatientGraph:
 						logger.critical("Disregarding large alteration %s vs %s", reference_path, alternative_path)
 						continue
 					# Decompose path if it is multiple
-					reference_sequence = ALT.kmerpathToSeq(reference_path,kmer_length)
-					multi_alternative_sequence = ALT.kmerpathToSeq(alternative_path,kmer_length)
+
+					reference_sequence = ALT.kmerpathToSeq(reference_path, kmer_length)
+					multi_alternative_sequence = ALT.kmerpathToSeq(alternative_path, kmer_length)
+					logger.info("Considering ref %s vs alt %s",reference_sequence,multi_alternative_sequence)
 					edit_ops = Levenshtein.editops(reference_sequence, multi_alternative_sequence)
 					my_iterator = iter(enumerate(edit_ops))
-					for e_i,e in my_iterator :
-						if e[0]=='replace':
+					for e_i, e in my_iterator:
+						if e[0] == 'replace':
 							atomic_sequence = Levenshtein.apply_edit([e], reference_sequence, multi_alternative_sequence)
 							print atomic_sequence
-							atomic_path = ALT.kmerize(atomic_sequence,kmer_length)
+							atomic_path = ALT.kmerize(atomic_sequence, kmer_length)
 						else:
 							end_e_i = e_i
-							while (end_e_i<len(edit_ops) and edit_ops[end_e_i][0] == e[0] and (e[1] == edit_ops[end_e_i][1] or e[2] == edit_ops[end_e_i][2])):
+							while (end_e_i < len(edit_ops) and edit_ops[end_e_i][0] == e[0] and (
+											e[1] == edit_ops[end_e_i][1] or e[2] == edit_ops[end_e_i][2])):
 								end_e_i += 1
 								try:
 									my_iterator.next()
-									print "j avance"
+								# print "j avance"
 								except StopIteration:
-									print "fini!"
-							atomic_sequence = Levenshtein.apply_edit(edit_ops[e_i:end_e_i+1], reference_sequence, multi_alternative_sequence)
-							print atomic_sequence
-							atomic_path = ALT.kmerize(atomic_sequence,kmer_length)						
+									# print "fini!"
+									break
+							atomic_sequence = Levenshtein.apply_edit(edit_ops[e_i:end_e_i + 1], reference_sequence,
+																	 multi_alternative_sequence)
+							# print atomic_sequence
+							atomic_path = ALT.kmerize(atomic_sequence, kmer_length)
 						# record each atomic alteration
-						self.alteration_list.append(ALT(reference_path, alternative_path, reference_sequence, atomic_sequence,
-													len(intersect_allnodes_pathRef_G_sample),
-													len(intersect_allnodes_pathAlt_G_sample), kmer_length,
-													max(self.total_coverage_node(node_start),
-														self.total_coverage_node(node_end)) * min_support / 100))
+						self.alteration_list.append(ALT(reference_path, atomic_path, reference_sequence, atomic_sequence,
+														len(intersect_allnodes_pathRef_G_sample),
+														len(intersect_allnodes_pathAlt_G_sample), kmer_length,
+														max(self.total_coverage_node(node_start),
+															self.total_coverage_node(node_end)) * min_support / 100))
 
 				# Replace start/end if it was a tips
 				node_end = end_node
@@ -246,4 +310,3 @@ class PatientGraph:
 							to_remove.append(self.significant_alteration_list[i_alteration])
 		for alteration in set(to_remove):
 			self.significant_alteration_list.remove(alteration)
-
