@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding=utf8
+import pprint as pp
 from itertools import ifilter
 from operator import itemgetter
 import re
@@ -43,7 +44,7 @@ def identify_anchor_kmer_in_reference_graph(reference_graph, kmer_to_anchor, lef
 	:type reference_graph: nx.DiGraph
 	"""
 	toposort = {v: k for k, v in enumerate(nx.topological_sort(reference_graph))}
-
+	print "Righmost is ",rightmost,toposort[rightmost]
 	nodes_to_consider = reference_graph.nodes()
 	if rightmost:
 		idx = toposort[rightmost]
@@ -53,10 +54,14 @@ def identify_anchor_kmer_in_reference_graph(reference_graph, kmer_to_anchor, lef
 		idx = toposort[leftmost]
 		nodes_to_consider = ifilter(lambda x: toposort[x] >= idx, nodes_to_consider)
 	# print "Min is ", idx
+	nodes_to_consider=list(nodes_to_consider)
 
 	node_dists = [(node, Levenshtein.distance(node, kmer_to_anchor), Levenshtein.editops(node, kmer_to_anchor)) for node in
 				  nodes_to_consider]
+	# print "Will search anchor in ",list(node_dists)
 	min_dist = min(node_dists, key=itemgetter(1))[1]
+	node_dists = [x for x in node_dists if x[1]==min_dist]
+	print "Min possible dist is",min_dist
 	if rightmost:
 		score_func = lambda x: (x[1] - min_dist) + abs(toposort[x[0]] - (toposort[rightmost] - path_length))
 	elif leftmost:
@@ -169,7 +174,7 @@ class PatientGraph:
 					# Reference path choice
 					# Replace start/end if it's a tips
 					if node_start not in G_ref:
-						logger.critical("The node %s (read support : %d) is a tips(start)", node_start,
+						logger.critical("The node %s (read support : %d) is a tip (start)", node_start,
 										len(self.dbg_refrm.node[alternative_path[1]]['read_list_n']))
 						anchor = identify_anchor_kmer_in_reference_graph(G_ref, node_start, rightmost=node_end,
 																		 path_length=len(alternative_path))
@@ -177,7 +182,7 @@ class PatientGraph:
 						node_start = anchor
 
 					if node_end not in G_ref:
-						logger.critical("The node %s (read support : %d) is a tips(end)", node_end,
+						logger.critical("The node %s (read support : %d) is a tip (end)", node_end,
 										len(self.dbg_refrm.node[alternative_path[1]]['read_list_n']))
 						anchor = identify_anchor_kmer_in_reference_graph(G_ref, node_start, leftmost=node_start,
 																		 path_length=len(alternative_path))

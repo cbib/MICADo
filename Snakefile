@@ -15,7 +15,7 @@ GATK="java -jar bin/GenomeAnalysisTK.jar"
 PICARD_DICT="java -jar bin/picard-1.140.jar CreateSequenceDictionary"
 PICARD_RG="java -jar bin/picard-1.140.jar AddOrReplaceReadGroups"
 
-MICADO_N_PERMUTATIONS=50
+MICADO_N_PERMUTATIONS=1000
 include: "Snakefile_tools"
 
 
@@ -24,6 +24,7 @@ AP53SAMPLE="N_534_1"
 AP53SAMPLE="C_158_1"
 AP53SAMPLE="N_158_1"
 AP53SAMPLE="N_193_1"
+AP53SAMPLE="N_183_1"
 
 rule view_GMAP_align_p53_sample:
     input: bam=XPDIR+"alignments/GMAP/"+AP53SAMPLE+"_on_NM_000546_5.sorted.bam",ref_fasta=REFFASTA
@@ -57,6 +58,31 @@ rule test_gatk_pool_0:
 rule micado_large_deletion_bug:
     input : XPDIR+"results/micado/N_215_1.significant_alterations.json",XPDIR+"results/micado/C_215_1.significant_alterations.json"
 
+rule test_micadp_on_tips:
+    input : XPDIR+"results/micado/N_272_2.significant_alterations.json",\
+            XPDIR+"results/micado/C_272_2.significant_alterations.json",\
+            XPDIR+"results/micado/N_183_1.significant_alterations.json",\
+            XPDIR+"results/micado/C_183_1.significant_alterations.json",\
+            XPDIR+"results/micado/N_183_2.significant_alterations.json",\
+            XPDIR+"results/micado/C_183_2.significant_alterations.json"
+
+rule test_micadp_on_neg_control:
+    input : XPDIR+"results/micado/N_158_1.significant_alterations.json",\
+            XPDIR+"results/micado/C_158_1.significant_alterations.json",\
+            XPDIR+"results/micado/N_193_1.significant_alterations.json",\
+            XPDIR+"results/micado/C_193_1.significant_alterations.json",\
+            XPDIR+"results/micado/N_319_1.significant_alterations.json",\
+            XPDIR+"results/micado/C_319_1.significant_alterations.json"
+
+rule test_micadp_on_large_deletions:
+    input : XPDIR+"results/micado/C_83_1.significant_alterations.json",\
+            XPDIR+"results/micado/C_83_2.significant_alterations.json",\
+            XPDIR+"results/micado/N_183_1.significant_alterations.json",\
+            XPDIR+"results/micado/N_183_2.significant_alterations.json",\
+            XPDIR+"results/micado/N_215_1.significant_alterations.json",\
+            XPDIR+"results/micado/N_272_1.significant_alterations.json",\
+            XPDIR+"results/micado/N_272_2.significant_alterations.json",\
+            XPDIR+"results/micado/N_276_1.significant_alterations.json"
 
 
 

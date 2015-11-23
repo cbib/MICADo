@@ -1,5 +1,5 @@
 from unittest import TestCase
-from bin.aggregate_caller_results import process_gatk_sample
+from bin.tabulate_unsupervised_xp_tp53_results import process_gatk_sample
 
 __author__ = 'hayssam'
 

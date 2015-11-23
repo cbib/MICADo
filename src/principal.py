@@ -256,7 +256,7 @@ if __name__ == "__main__":
 						required=False)
 	parser.add_argument("--destdir", help="Output directory", default="output/gml", type=str, required=False)
 	parser.add_argument("--export", help="Whether to export graphs to GML", action='store_true')
-	parser.add_argument("--max_len", help="Maximum allowed indel length", default=5, type=int)
+	parser.add_argument("--max_len", help="Maximum allowed indel length", default=250, type=int)
 	parser.add_argument("--pvalue", help="P value threshold for significance", type=float, default=0.001)
 	parser.add_argument("--results", help="Output (as JSON) results file  ", type=str, default=None)
 
