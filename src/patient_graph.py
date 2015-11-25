@@ -44,7 +44,7 @@ def identify_anchor_kmer_in_reference_graph(reference_graph, kmer_to_anchor, lef
 	:type reference_graph: nx.DiGraph
 	"""
 	toposort = {v: k for k, v in enumerate(nx.topological_sort(reference_graph))}
-	print "Righmost is ",rightmost,toposort[rightmost]
+	# print "Righmost is ",rightmost,toposort[rightmost]
 	nodes_to_consider = reference_graph.nodes()
 	if rightmost:
 		idx = toposort[rightmost]
