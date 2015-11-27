@@ -1,7 +1,9 @@
 import random
 REFFASTA="data/reference/NM_000546.5.fasta"
+# variables for the snakefile tools
 REFFASTADICT="data/reference/NM_000546.5.dict"
 IDXGENOMENAME="NM_000546_5"
+XPCODE="TP53" # for micado
 
 SNPDATA="data/reference/snp_TP53.tab"
 SYNTHLABEL="SYNTHP53"

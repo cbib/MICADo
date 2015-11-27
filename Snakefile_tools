@@ -5,11 +5,11 @@
 
 ### GMAP
 
-#rule gmap_build_genome_index:
-#    output: gmap_genome="data/gmap_genomes/{IDXGENOMENAME}/{IDXGENOMENAME}.version"
-#    shell:"""
-#       gmap_build -d {IDXGENOMENAME} {REFFASTA} -D data/gmap_genomes/
-#    """
+rule gmap_build_genome_index:
+    output: gmap_genome="data/gmap_genomes/{IDXGENOMENAME}/{IDXGENOMENAME}.version"
+    shell:"""
+       gmap_build -d {IDXGENOMENAME} {REFFASTA} -D data/gmap_genomes/
+    """
 
 rule gmap_align_sample:
     input: fastq=XPDIR+"reads/{sample}.fastq",\
@@ -86,7 +86,7 @@ rule run_micado:
         export PYTHONPATH=`pwd`/src
 
         # run micado
-        /usr/bin/time -l python src/principal.py --fastq {input.random_sample} --experiment TP53 \
+        /usr/bin/time -l python src/principal.py --fastq {input.random_sample} --experiment XPCODE \
                                 --kmer_length 18 \
                                 --fasta {input.fasta_ref} \
                                 --samplekey {SAMPLEKEY} \
@@ -96,33 +96,6 @@ rule run_micado:
 
 
 """
-
-
-rule generate_sample:
-    input:input_sam=INPUTSAM
-    params:
-            output_reads=XPDIR+"reads/{sample}_{seed}_{nreads}_{frac}_{nalt}_{altw}",\
-            output_results=XPDIR+"results/sampler/{sample}_{seed}_{nreads}_{frac}_{nalt}_{altw}"
-    log : "exec_logs/sampler_log_{sample}_{seed}_{nreads}_{frac}_{nalt}_{altw}.txt"
-    output:random_alt=XPDIR+"reads/{sample}_{seed,\d+}_{nreads,\d+}_{frac,\d+}_{nalt,\d+}_{altw}.fastq",
-           non_alt=temp(XPDIR+"reads/{sample}_{seed,\d+}_{nreads,\d+}_{frac,\d+}_{nalt,\d+}_{altw}_non_alt.fastq"),\
-           sampler_results=XPDIR+"results/sampler/{sample}_{seed,\d+}_{nreads,\d+}_{frac,\d+}_{nalt,\d+}_{altw}.alterations.json"
-    shell:"""
-        source ~/.virtualenvs/micado/bin/activate
-        export PYTHONPATH=`pwd`/src
-
-        # build a sample
-        /usr/bin/time -l python src/read_sampler/altered_reads_sampler.py --input_sam {input.input_sam}  \
-                      --output_reads_prefix "{params.output_reads}" \
-                      --output_result_prefix "{params.output_results}" \
-                      --n_reads {wildcards.nreads} --fraction_altered 0.{wildcards.frac} --n_alterations {wildcards.nalt} --alt_weight {wildcards.altw} \
-                      --seed {wildcards.seed} \
-                      2> {log}
-                    # --systematic_offset -202 2> {log}
-                    # --output_lowercase \
-
-    """
-
 
 
 
