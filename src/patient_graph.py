@@ -54,14 +54,14 @@ def identify_anchor_kmer_in_reference_graph(reference_graph, kmer_to_anchor, lef
 		idx = toposort[leftmost]
 		nodes_to_consider = ifilter(lambda x: toposort[x] >= idx, nodes_to_consider)
 	# print "Min is ", idx
-	nodes_to_consider=list(nodes_to_consider)
+	nodes_to_consider = list(nodes_to_consider)
 
 	node_dists = [(node, Levenshtein.distance(node, kmer_to_anchor), Levenshtein.editops(node, kmer_to_anchor)) for node in
 				  nodes_to_consider]
 	# print "Will search anchor in ",list(node_dists)
 	min_dist = min(node_dists, key=itemgetter(1))[1]
-	node_dists = [x for x in node_dists if x[1]==min_dist]
-	print "Min possible dist is",min_dist
+	node_dists = [x for x in node_dists if x[1] == min_dist]
+	print "Min possible dist is", min_dist
 	if rightmost:
 		score_func = lambda x: (x[1] - min_dist) + abs(toposort[x[0]] - (toposort[rightmost] - path_length))
 	elif leftmost:
@@ -248,34 +248,10 @@ class PatientGraph:
 					if abs(len(reference_path) - len(alternative_path)) > max_len:
 						logger.critical("Disregarding large alteration %s vs %s", reference_path, alternative_path)
 						continue
-					# Decompose path if it is multiple
 
 					reference_sequence = ALT.kmerpathToSeq(reference_path, kmer_length)
-					multi_alternative_sequence = ALT.kmerpathToSeq(alternative_path, kmer_length)
-					logger.info("Considering ref %s vs alt %s",reference_sequence,multi_alternative_sequence)
-					edit_ops = Levenshtein.editops(reference_sequence, multi_alternative_sequence)
-					my_iterator = iter(enumerate(edit_ops))
-					for e_i, e in my_iterator:
-						if e[0] == 'replace':
-							atomic_sequence = Levenshtein.apply_edit([e], reference_sequence, multi_alternative_sequence)
-							print atomic_sequence
-							atomic_path = ALT.kmerize(atomic_sequence, kmer_length)
-						else:
-							end_e_i = e_i
-							while (end_e_i < len(edit_ops) and edit_ops[end_e_i][0] == e[0] and (
-											e[1] == edit_ops[end_e_i][1] or e[2] == edit_ops[end_e_i][2])):
-								end_e_i += 1
-								try:
-									my_iterator.next()
-								# print "j avance"
-								except StopIteration:
-									# print "fini!"
-									break
-							atomic_sequence = Levenshtein.apply_edit(edit_ops[e_i:end_e_i + 1], reference_sequence,
-																	 multi_alternative_sequence)
-							# print atomic_sequence
-							atomic_path = ALT.kmerize(atomic_sequence, kmer_length)
-						# record each atomic alteration
+					# Decompose path if it is multiple
+					for atomic_sequence, atomic_path in decompose_multiple_alterations(reference_path, alternative_path, kmer_length):
 						self.alteration_list.append(ALT(reference_path, atomic_path, reference_sequence, atomic_sequence,
 														len(intersect_allnodes_pathRef_G_sample),
 														len(intersect_allnodes_pathAlt_G_sample), kmer_length,
@@ -313,6 +289,38 @@ class PatientGraph:
 					for i_alteration in node_dict[extremity][node]:
 						if self.significant_alteration_list[i_alteration].ratio_read_count != ratio_max:
 							to_remove.append(self.significant_alteration_list[i_alteration])
-		logger.info("Will remove alterations %s",to_remove)
+		logger.info("Will remove alterations  %s", [x.alternative_sequence for x in to_remove])
 		for alteration in set(to_remove):
 			self.significant_alteration_list.remove(alteration)
+
+
+def decompose_multiple_alterations(reference_path, alternative_path, kmer_length):
+	reference_sequence = ALT.kmerpathToSeq(reference_path, kmer_length)
+	multi_alternative_sequence = ALT.kmerpathToSeq(alternative_path, kmer_length)
+
+	edit_ops = Levenshtein.editops(reference_sequence, multi_alternative_sequence)
+	if len(edit_ops) > 2:
+		logger.info("Multiple alt when considering ref %s vs alt %s", reference_sequence, multi_alternative_sequence)
+		logger.info("Globally apply %s", edit_ops)
+	start, end = 0, 0
+	while start < len(edit_ops):
+		if edit_ops[start] == 'replace':
+			atomic_sequence = Levenshtein.apply_edit([edit_ops[start]], reference_sequence, multi_alternative_sequence)
+			# print atomic_sequence
+			atomic_path = ALT.kmerize(atomic_sequence, kmer_length)
+			start += 1
+		else:
+			start_e = edit_ops[start]
+			end = start + 1
+			while (end < len(edit_ops)
+				   and edit_ops[end][0] == start_e[0]
+				   and (start_e[1] == edit_ops[end][1] or start_e[2] == edit_ops[end][2])):
+				end += 1
+			edit_op_to_apply = edit_ops[start:end]
+			start = end
+			logger.info("Will apply %s", edit_op_to_apply)
+			atomic_sequence = Levenshtein.apply_edit(edit_op_to_apply, reference_sequence, multi_alternative_sequence)
+			atomic_path = ALT.kmerize(atomic_sequence, kmer_length)
+		# record each atomic alteration
+		logger.info("Adding atomic alteration for ref %s vs alt %s", reference_sequence, atomic_sequence)
+		yield atomic_sequence, atomic_path

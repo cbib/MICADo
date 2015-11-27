@@ -85,7 +85,10 @@ def micado_multi(sample_key, n_perm=25):
 
 
 def kmerize(s, k):
-	return [s[i:i + k] for i in range(0, len(s) - k)]
+	if (k + 2) <= len(s):
+		return [s[i:(i + k)] for i in range(0, len(s) - (k - 1))]
+	else:
+		return [s]
 
 
 def align(ref, transformed):
@@ -125,10 +128,10 @@ class TestRandomReadsGraph(TestCase):
 		micado_multi("N_193_1")
 
 	def test_build_read_set_for_path_N_183_1(self):
-		micado_multi("N_183_1") # tips
+		micado_multi("N_183_1")  # tips
 
 	def test_C_221_2(self):
-		micado_multi("C_221_2") # tips
+		micado_multi("C_221_2")  # tips
 
 	def test_build_read_set_for_path_N_192_2(self):
 		micado_multi("N_192_2")
@@ -151,16 +154,19 @@ class TestRandomReadsGraph(TestCase):
 		for pos_sample in positive_controls:
 			print "Processing sample", pos_sample
 			micado_multi(pos_sample)
+
 	def test_rrg_creation_speed(self):
 		import seq_lib_TP53 as seq_lib
 		for i in range(10):
 			rg = randomreadsgraph.RandomReadsGraph({"N": 0, "C": 0}, k=18, seq_lib_module=seq_lib, restrict_to=None)
 			print i
+
 	def test_sampling_speed(self):
 		import seq_lib_TP53 as seq_lib
 		for i in range(10):
-			read_list = seq_lib.sampling({"N":0,"C":0})
+			read_list = seq_lib.sampling({"N": 0, "C": 0})
 			print i
+
 # ref = "ATGCCAGAGGCTGCTCCCCCCGTGGCCCCTGCACCAGCAGCTCC"
 # alt = "ATGCCAGAGGCTGCTCCCGCGTGGCCCTGCACCAGCAGCTCC"
 #
