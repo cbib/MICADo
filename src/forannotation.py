@@ -2,6 +2,7 @@ import difflib
 import re
 
 from Bio import pairwise2
+import itertools
 
 from helpers.logger import init_logger
 
@@ -13,12 +14,20 @@ def find_edit_operations(seq1, seq2):
 	return matcher.get_opcodes()
 
 
+def merge_identical_alterations(annotated_alterations):
+	# identify groups having exactly the same start and end
+	annotated_alterations.sort(key=lambda alt: (alt['start'], alt['end']))
+	merged_alterations = []
+	for g, alt_group in itertools.groupby(annotated_alterations,key=lambda alt: (alt['start'], alt['end'])):
+		best_alt = max(list(alt_group), key=lambda alt: alt['alt_read_count'])
+		merged_alterations.append(best_alt)
+	return merged_alterations
+
+
 def alteration_list_to_transcrit_mutation(g_test, g_ref):
 	annotated_alterations = []
 	for i_alteration in range(0, len(g_test.significant_alteration_list)):
-		# TODO substitute biopython global alignment by python difflib
-		# TODO allow for multiple mutation to be returned as non distinguishable, e.g. they are reported as being in the same group.
-		is_multi=False
+		is_multi = False
 		curr_alteration = g_test.significant_alteration_list[i_alteration]
 		ref_seq = curr_alteration.reference_sequence
 		alt_seq = curr_alteration.alternative_sequence
@@ -31,8 +40,8 @@ def alteration_list_to_transcrit_mutation(g_test, g_ref):
 
 		if len(compact_cigard) != 6:
 			logger.critical("More than one alteration: for %s", compact_cigard)
-			is_multi=True
-			# continue
+			is_multi = True
+		# continue
 
 		alteration_type = compact_cigard[3]
 		# print g_ref.dbg.node[g_test.significant_alteration_list[i_alteration].reference_path[0]]['ref_list']
@@ -45,6 +54,7 @@ def alteration_list_to_transcrit_mutation(g_test, g_ref):
 			splicing_variant = "NM_001126114.2"
 		elif "NM_001126113.2" in ref_path_list:
 			splicing_variant = "NM_001126113.2"
+
 		position = ref_path_list[splicing_variant] + compact_cigard[0]
 		base_position = ref_path_list[splicing_variant]
 
@@ -60,60 +70,73 @@ def alteration_list_to_transcrit_mutation(g_test, g_ref):
 		else:
 			reference_sequence = ref_seq[compact_cigard[0]:compact_cigard[0] + compact_cigard[2]]
 
-
 		alteration_description = {
 			"splicing_variant": splicing_variant,
-			"compact_cigar":"".join(map(str,compact_cigard)),
-			"is_multi":is_multi,
-			"uncompact_cigar":uncompact_cigar,
-			"base_position":base_position,
+			"compact_cigar": "".join(map(str, compact_cigard)),
+			"is_multi": is_multi,
+			"uncompact_cigar": uncompact_cigar,
+			"base_position": base_position,
 			"start": position,
 			"end": None,
 			'alt_sequence': None,
-			"n_alterations":len([x for x in uncompact_cigar if x!="M"]),
+			"n_alterations": len([x for x in uncompact_cigar if x != "M"]),
 			"reference_sequence": reference_sequence,
 			"alt_type": alteration_type,
 			"pvalue_ratio": curr_alteration.pvalue_ratio,
 			"alt_read_count": curr_alteration.alternative_read_count,
+			"ref_read_count": curr_alteration.reference_read_count,
 			"z_score": float(curr_alteration.zscore),
-			"alignment":alignments[0]
+			"alignment": alignments[0]
 		}
 
 		if alteration_type == "X":
 			# c.76A>T
 			if compact_cigard[2] != 1:
 				logger.critical("More than one alteration: for %s", compact_cigard)
-				alteration_description['is_multi']=True
-				# continue
-			alteration = alt_seq[compact_cigard[0]:compact_cigard[0] + compact_cigard[2]]
+				alteration_description['is_multi'] = True
+			# continue
 			alteration_description['end'] = alteration_description['start']
-			alteration_description['alt_sequence'] = alteration
-			annotated_alterations.append(alteration_description)
-			print "%s:c.%d%s>%s\t%d\t%d\t%f\t%f" % (splicing_variant, position, reference_sequence, alteration, curr_alteration.reference_read_count,
-													curr_alteration.alternative_read_count,
-													curr_alteration.pvalue_ratio,
-													float(curr_alteration.zscore))
+			alteration_description['alt_sequence'] = alt_seq[compact_cigard[0]:compact_cigard[0] + compact_cigard[2]]
 		elif alteration_type == "D":
 			# c.76_78delACT
 			alteration_description['end'] = position + len(reference_sequence) - 1
-			annotated_alterations.append(alteration_description)
-			print "%s:c.%d_%ddel%s\t%d\t%d\t%f\t%f" % (
-				splicing_variant, position, position + len(reference_sequence) - 1, reference_sequence, curr_alteration.reference_read_count,
-				curr_alteration.alternative_read_count, curr_alteration.pvalue_ratio,
-				float(curr_alteration.zscore))
 		else:
 			# c.76_77insG
-			alteration = alt_seq[compact_cigard[0]:compact_cigard[0] + compact_cigard[2]]
-			alteration_description['alt_sequence'] = alteration
+			alteration_description['alt_sequence'] = alt_seq[compact_cigard[0]:compact_cigard[0] + compact_cigard[2]]
 			alteration_description['end'] = position + 1
-			annotated_alterations.append(alteration_description)
 
-			print "%s:c.%d_%dins%s\t%d\t%d\t%f\t%f" % (
-				splicing_variant, position, position + 1, alteration, curr_alteration.reference_read_count,
-				curr_alteration.alternative_read_count, curr_alteration.pvalue_ratio,
-				float(curr_alteration.zscore))
+		annotated_alterations.append(alteration_description)
+	annotated_alterations = merge_identical_alterations(annotated_alterations)
+	for alt in annotated_alterations:
+		print_alteration(alt)
 
 	return annotated_alterations
+
+
+def print_alteration(alteration_description):
+	alt_type = alteration_description['alt_type']
+	alt_sequence = alteration_description['alt_sequence']
+	reference_sequence = alteration_description['reference_sequence']
+	ref_read_count = alteration_description['ref_read_count']
+	splicing_variant = alteration_description['splicing_variant']
+	start = alteration_description['start']
+	alt_read_count = alteration_description['alt_read_count']
+	p_value = alteration_description['pvalue_ratio']
+	z_score = alteration_description['z_score']
+	end = alteration_description['end']
+
+	if alt_type == "X":
+		print "%s:c.%d%s>%s\t%d\t%d\t%f\t%f" % (
+			splicing_variant, start, reference_sequence, alt_sequence, ref_read_count,
+			alt_read_count, p_value, z_score)
+	elif alt_type == "D":
+		print "%s:c.%d_%ddel%s\t%d\t%d\t%f\t%f" % (
+			splicing_variant, start, end, reference_sequence, ref_read_count,
+			alt_read_count, p_value, z_score)
+	elif alt_type == "I":
+		print "%s:c.%d_%dins%s\t%d\t%d\t%f\t%f" % (
+			splicing_variant, start, end, alt_sequence, ref_read_count,
+			alt_read_count, p_value, z_score)
 
 
 def compute_cigar_string(alignments):

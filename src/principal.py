@@ -134,9 +134,9 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 
 	g_patient.significant_alteration_list_init(p_value_threshold=p_value_threshold)
 
-	# If more than one significant alteration, check if they are not in "spike" (en épis)
-	if len(g_patient.significant_alteration_list) > 1:
-		g_patient.multiple_alternative_path_filter()
+	# # If more than one significant alteration, check if they are not in "spike" (en épis)
+	# if len(g_patient.significant_alteration_list) > 1:
+	# 	g_patient.multiple_alternative_path_filter()
 
 	# Stat
 	# alteration stat
