@@ -313,5 +313,6 @@ class PatientGraph:
 					for i_alteration in node_dict[extremity][node]:
 						if self.significant_alteration_list[i_alteration].ratio_read_count != ratio_max:
 							to_remove.append(self.significant_alteration_list[i_alteration])
+		logger.info("Will remove alterations %s",to_remove)
 		for alteration in set(to_remove):
 			self.significant_alteration_list.remove(alteration)

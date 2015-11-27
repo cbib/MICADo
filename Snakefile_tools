@@ -86,7 +86,7 @@ rule run_micado:
         export PYTHONPATH=`pwd`/src
 
         # run micado
-        /usr/bin/time -l python src/principal.py --fastq {input.random_sample} --experiment XPCODE \
+        /usr/bin/time -l python src/principal.py --fastq {input.random_sample} --experiment {XPCODE} \
                                 --kmer_length 18 \
                                 --fasta {input.fasta_ref} \
                                 --samplekey {SAMPLEKEY} \

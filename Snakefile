@@ -1,17 +1,17 @@
 import random
-REFFASTA="data/reference/reference_FLT3.fasta"
+REFFASTA="data/reference/NM_000546.5.fasta"
+# variables for the snakefile tools
+REFFASTADICT="data/reference/NM_000546.5.dict"
+IDXGENOMENAME="NM_000546_5"
+XPCODE="TP53" # for micado
+MICADO_FLAGS=""
+
+SNPDATA="data/reference/snp_TP53.tab"
+SYNTHLABEL="SYNTHP53"
 INPUTSAM="data/experimental_results/TP53/alignments/C_model_GMAPno40_NM_000546.5.sam"
-REFFASTADICT="data/reference/reference_FLT3.dict"
-IDXGENOMENAME="reference_FLT3"
-XPCODE="FLT3"
-MICADO_FLAGS="--disable_cycle_breaking"
 
-SNPDATA="data/reference/snp_FLT3.tab"
-SYNTHLABEL="SYNTHPFLT3"
-
-
-XPDIR="data/flt3_analysis/"
-SAMPLEKEY="flt3_hayssam"
+XPDIR="data/tp53_analysis/"
+SAMPLEKEY="tp53_hayssam"
 
 VARSCAN="java -jar bin/VarScan.v2.4.0.jar"
 GATK="java -jar bin/GenomeAnalysisTK.jar"
@@ -23,42 +23,76 @@ include: "Snakefile_tools"
 
 
 
-AFLT3SAMPLE="SRR413284_Normal3"
-AFLT3SAMPLE="SRR413284_Normal3_oriented"
+AP53SAMPLE="N_534_1"
+AP53SAMPLE="C_158_1"
+AP53SAMPLE="N_158_1"
+AP53SAMPLE="N_193_1"
+AP53SAMPLE="N_323_1"
 
-rule orient_sample:
-    input:fastq=XPDIR+"reads/{sample}.fastq",code="bin/orient_reads_in_forward_direction.py"
-    output:XPDIR+"reads/{sample}_oriented.fastq"
-    shell:"""
-    source ~/.virtualenvs/micado/bin/activate
-    export PYTHONPATH=`pwd`/src
-
-    python {input.code} \
-             --fastq {input.fastq} \
-            --forward_primers TGCTGTGCATACAATTCCCTTGGC,GAGAGGCACTCATGTCAGAACTCA\
-            --reverse_primers TCTCTGCTGAAAGGTCGCCTGTTT,AGTCCTCCTCTTCTTCCAGCCTTT \
-            --output_suffix oriented
-    """
-
-rule samtools_stats :
-    input: bam=XPDIR+"alignments/GMAP/"+AFLT3SAMPLE+"_on_"+IDXGENOMENAME+".sorted.bam"
-    shell:"""
-        samtools view {input.bam}| awk '{{print $2}}' | sort | uniq -c
-    """
-
-rule view_GMAP_align_flt3_sample:
-    input: bam=XPDIR+"alignments/GMAP/"+AFLT3SAMPLE+"_on_"+IDXGENOMENAME+".sorted.bam",ref_fasta=REFFASTA
+rule view_GMAP_align_p53_sample:
+    input: bam=XPDIR+"alignments/GMAP/"+AP53SAMPLE+"_on_NM_000546_5.sorted.bam",ref_fasta=REFFASTA
     shell:"""
     samtools tview {input.bam} {input.ref_fasta}
     """
 rule test_varscan:
-    input : XPDIR+"results/varscan/"+AFLT3SAMPLE+"_on_"+IDXGENOMENAME+".vcf"
+    input : XPDIR+"results/varscan/"+AP53SAMPLE+"_on_NM_000546_5.vcf"
     shell: 'grep -v "^#" {input} | cut -f 2,4,5'
 
 rule test_gatk:
-    input : XPDIR+"results/gatk/"+AFLT3SAMPLE+"_on_"+IDXGENOMENAME+"_raw.vcf"
+    input : XPDIR+"results/gatk/"+AP53SAMPLE+"_on_NM_000546_5_raw.vcf"
     shell: 'grep -v "^#" {input} | cut -f 2,4,5'
 
 
 rule test_micado:
-    input: XPDIR+"results/micado/"+AFLT3SAMPLE+".significant_alterations.json"
+    input: XPDIR+"results/micado/"+AP53SAMPLE+".significant_alterations.json"
+
+pool_0_samples= [x.split(",")[0] for x in open("data/experimental_results/TP53/pool_0_groups.tsv","r").readlines()[1:]]
+
+rule test_micado_pool_0:
+    input: expand(XPDIR+"results/micado/{sample}.significant_alterations.json",sample=pool_0_samples)
+
+
+rule test_varscan_pool_0:
+    input: expand(XPDIR+"results/varscan/{sample}_on_NM_000546_5.vcf",sample=pool_0_samples)
+
+rule test_gatk_pool_0:
+    input: expand(XPDIR+"results/gatk/{sample}_on_NM_000546_5_raw.vcf",sample=pool_0_samples)
+
+rule micado_large_deletion_bug:
+    input : XPDIR+"results/micado/N_215_1.significant_alterations.json",XPDIR+"results/micado/C_215_1.significant_alterations.json"
+
+rule test_micadp_on_tips:
+    input : XPDIR+"results/micado/N_272_2.significant_alterations.json",\
+            XPDIR+"results/micado/C_272_2.significant_alterations.json",\
+            XPDIR+"results/micado/N_183_1.significant_alterations.json",\
+            XPDIR+"results/micado/C_183_1.significant_alterations.json",\
+            XPDIR+"results/micado/N_183_2.significant_alterations.json",\
+            XPDIR+"results/micado/C_183_2.significant_alterations.json"
+
+rule test_micadp_on_neg_control:
+    input : XPDIR+"results/micado/N_158_1.significant_alterations.json",\
+            XPDIR+"results/micado/C_158_1.significant_alterations.json",\
+            XPDIR+"results/micado/N_193_1.significant_alterations.json",\
+            XPDIR+"results/micado/C_193_1.significant_alterations.json",\
+            XPDIR+"results/micado/N_319_1.significant_alterations.json",\
+            XPDIR+"results/micado/C_319_1.significant_alterations.json"
+
+rule test_micadp_on_large_deletions:
+    input : XPDIR+"results/micado/C_83_1.significant_alterations.json",\
+            XPDIR+"results/micado/C_83_2.significant_alterations.json",\
+            XPDIR+"results/micado/N_183_1.significant_alterations.json",\
+            XPDIR+"results/micado/N_183_2.significant_alterations.json",\
+            XPDIR+"results/micado/N_215_1.significant_alterations.json",\
+            XPDIR+"results/micado/N_272_1.significant_alterations.json",\
+            XPDIR+"results/micado/N_272_2.significant_alterations.json",\
+            XPDIR+"results/micado/N_276_1.significant_alterations.json"
+
+rule test_micadp_on_wrongly_filtered_out_alteration: # output misses a large deletion with a very large z-score, why ?
+    input : XPDIR+"results/micado/N_192_2.significant_alterations.json",\
+
+
+
+some_tp53_samples = random.sample([os.path.splitext(x)[0] for x in os.listdir(XPDIR+"/reads/") if x.endswith(".fastq") and x[0]=="N"],50)
+# some_samples=["C_872_1", "C_1375_1", "C_1464_2", "C_1083_1", "C_1063_2", "C_522_1", "C_967_1", "C_579_2", "C_890_1", "C_412_1", "C_38_2", "C_986_2", "C_576_2", "C_49_1", "C_1212_1", "C_72_2", "C_565_1", "C_222_1", "C_1442_1"]
+rule test_varscan_all:
+    input : expand("{dir}results/varscan/{sample}_on_NM_000546_5.vcf",dir=XPDIR,sample=some_tp53_samples)
