@@ -4,6 +4,7 @@ REFFASTA="data/reference/NM_000546.5.fasta"
 REFFASTADICT="data/reference/NM_000546.5.dict"
 IDXGENOMENAME="NM_000546_5"
 XPCODE="TP53" # for micado
+MICADO_FLAGS=""
 
 SNPDATA="data/reference/snp_TP53.tab"
 SYNTHLABEL="SYNTHP53"

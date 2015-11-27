@@ -92,7 +92,7 @@ rule run_micado:
                                 --samplekey {SAMPLEKEY} \
                                 --snp {input.snp_data} \
                                 --npermutations {MICADO_N_PERMUTATIONS} --pvalue 0.01 \
-                                --results {output.micado_results} 2> {log}
+                                --results {output.micado_results} {MICADO_FLAGS} 2> {log}
 
 
 """

@@ -27,7 +27,7 @@ logger.info("Import finished")
 
 def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_threshold, max_len, sample_key=None, fastq_files=None,
 				   fasta_file=None, snp_file=None, experiment_name=None,
-				   destination_directory=".", export_gml=False, output_results=None):
+				   destination_directory=".", export_gml=False, output_results=None, disable_cycle_breaking=False):
 	if experiment_name == "TP53":
 		import seq_lib_TP53 as seq_lib_module
 	else:
@@ -39,7 +39,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 	g_reference = RG(kmer_length, fasta_file, snp_file)
 
 	# Is there cycles in reference graph?
-	if list(nx.simple_cycles(g_reference.dbg)):
+	if not disable_cycle_breaking and list(nx.simple_cycles(g_reference.dbg)):
 		if kmer_length > 70:
 			logger.info("There are always cycle(s) with k==70...exiting")
 			sys.exit(0)
@@ -60,7 +60,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 	logger.info("After cleaning: %d nodes", len(g_patient.dbgclean))
 
 	# Is there cycles in patient graph?
-	if list(nx.simple_cycles(g_patient.dbgclean)):
+	if not disable_cycle_breaking and list(nx.simple_cycles(g_patient.dbgclean)):
 		if kmer_length > 70:
 			logger.info("There are still cycle(s) with k==70...exiting")
 			sys.exit(0)
@@ -259,6 +259,7 @@ if __name__ == "__main__":
 	parser.add_argument("--max_len", help="Maximum allowed indel length", default=250, type=int)
 	parser.add_argument("--pvalue", help="P value threshold for significance", type=float, default=0.001)
 	parser.add_argument("--results", help="Output (as JSON) results file  ", type=str, default=None)
+	parser.add_argument("--disable_cycle_breaking", help="Do not search for k-mer values yielding a DAG", action="store_true")
 
 	args = parser.parse_args()
 
@@ -275,5 +276,6 @@ if __name__ == "__main__":
 		export_gml=args.export,
 		p_value_threshold=args.pvalue,
 		output_results=args.results,
-		max_len=args.max_len
+		max_len=args.max_len,
+		disable_cycle_breaking=args.disable_cycle_breaking
 	)

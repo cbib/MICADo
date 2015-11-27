@@ -4,6 +4,7 @@ INPUTSAM="data/experimental_results/TP53/alignments/C_model_GMAPno40_NM_000546.5
 REFFASTADICT="data/reference/reference_FLT3.dict"
 IDXGENOMENAME="reference_FLT3"
 XPCODE="FLT3"
+MICADO_FLAGS="--disable_cycle_breaking"
 
 SNPDATA="data/reference/snp_FLT3.tab"
 SYNTHLABEL="SYNTHPFLT3"
