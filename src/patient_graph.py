@@ -164,12 +164,14 @@ class PatientGraph:
 				for alternative_path in nx.all_simple_paths(self.dbg_refrm, node_start, node_end):
 					if len(set(alternative_path) & G_ref_nodes_set) > 2:
 						continue
+					# Compute coverage of the altenative path
+					total_coverage = max([self.total_coverage_node(alt_nodes) for alt_nodes in alternative_path])
 					# Read intersection of all nodes in the alt path for G_sample 
 					read_set_pathAlt_G_sample = []
 					for node in alternative_path:
 						read_set_pathAlt_G_sample.append(set(self.dbg_refrm.node[node]['read_list_n']))
 					intersect_allnodes_pathAlt_G_sample = set.intersection(*read_set_pathAlt_G_sample)
-					if len(intersect_allnodes_pathAlt_G_sample) == 0:
+					if len(intersect_allnodes_pathAlt_G_sample) <= total_coverage * min_support / 100:
 						continue
 					# Reference path choice
 					# Replace start/end if it's a tips
