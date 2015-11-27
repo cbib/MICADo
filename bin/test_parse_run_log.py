@@ -1,5 +1,5 @@
 from unittest import TestCase
-from bin.tabulate_unsupervised_xp_tp53_results import parse_run_log
+from bin.tabulate_and_aggregate_xp_results import parse_run_log
 
 __author__ = 'hayssam'
 

@@ -138,7 +138,8 @@ def tabulate_result(results):
 	return result_table
 
 
-results_dir = "../micado_synthetic_results/synthetic/"
+# results_dir = "../micado_synthetic_results/synthetic/"
+results_dir = "data/synthetic/results/micado/"
 avail_results = [results_dir + x for x in os.listdir(results_dir) if x.endswith(".json") and "combined" in x]
 len(avail_results)
 

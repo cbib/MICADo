@@ -62,9 +62,11 @@ def process_varscan_sample(sample_name):
 	a_sample = "data/synthetic/results/varscan/%s_on_NM_000546_5.vcf" % sample_name
 	keys = ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT']
 	content = pd.DataFrame.from_records([dict(zip(keys, x.split("\t"))) for x in open(a_sample).readlines() if not x.startswith("#")])
+	alteration_description = json.loads(open("data/synthetic/results/sampler/%s.alterations.json" % sample_name).read())
 
 	altered = content
 	result_dict = {}
+	result_dict.update(alteration_description)
 	if len(altered) < 1:
 		result_dict['varscan'] = []
 	else:
@@ -119,7 +121,8 @@ def process_gatk_sample(sample_name):
 
 def process_micado_sample(sample_name):
 	# micado_content = json.load(open("../micado_synthetic_results/synthetic/%s.combined_alterations.json" % sample_name))
-	micado_content = json.load(open("data/synthetic/results/micado/%s.significant_alterations.json" % sample_name))
+	micado_content = json.load(open("data/synthetic/results/micado/%s.combined_alterations.json" % sample_name))
+	# micado_content = json.load(open("data/synthetic/results/micado/%s.significant_alterations.json" % sample_name))
 	alteration_description = json.loads(open("data/synthetic/results/sampler/%s.alterations.json" % sample_name).read())
 	run_log = "exec_logs/micado_log_%s.txt" % sample_name
 	altered = micado_content['significant_alterations']
@@ -149,6 +152,8 @@ def flatten_sample(result_dict, caller_key):
 		'total_run_time': result_dict['total_run_time'],
 		'max_memory': result_dict['max_memory'],
 		"caller": caller_key,
+		'tool_sampler_n_alterations':len(result_dict['sampler']['injected_alterations']),
+		'tool_sampler_fraction_altered':result_dict['sampler']['parameters']['fraction_altered']
 	}
 	for x in result_dict[caller_key]:
 		alt_dict = x
@@ -186,7 +191,8 @@ def process_varscan_samples():
 
 def process_micado_samples():
 	# avail_samples = [x for x in os.listdir("../micado_synthetic_results/synthetic/") if x.endswith(".significant_alterations.json")]
-	avail_samples = [x for x in os.listdir("data/synthetic/results/micado/") if x.endswith(".significant_alterations.json")]
+	# avail_samples = [x for x in os.listdir("data/synthetic/results/micado/") if x.endswith(".significant_alterations.json")]
+	avail_samples = [x for x in os.listdir("data/synthetic/results/micado/") if x.endswith(".combined_alterations.json")]
 	for _, samp in time_iterator(avail_samples, logger, msg_prefix="MICADo results"):
 		name = samp.split(".")[0]
 		try:
@@ -199,11 +205,13 @@ def process_micado_samples():
 
 
 if __name__ == '__main__':
+	# MICADo results are processed by "post_process_results.py"
+	# micado_aggregated_results = pd.DataFrame.from_records(itertools.chain(*[flatten_sample(x, "micado") for x in process_micado_samples()]))
+	# micado_aggregated_results.to_csv("data/synthetic/summary/micado_results_on_synthetic_data.csv")
+
 	gatk_aggregated_results = pd.DataFrame.from_records(itertools.chain(*[flatten_sample(x, "gatk") for x in process_gatk_samples()]))
 	gatk_aggregated_results.to_csv("data/synthetic/summary/gatk_results_on_synthetic_data.csv")
 
 	varscan_aggregated_results = pd.DataFrame.from_records(itertools.chain(*[flatten_sample(x, "varscan") for x in process_varscan_samples()]))
 	varscan_aggregated_results.to_csv("data/synthetic/summary/varscan_results_on_synthetic_data.csv")
 
-	micado_aggregated_results = pd.DataFrame.from_records(itertools.chain(*[flatten_sample(x, "micado") for x in process_micado_samples()]))
-	micado_aggregated_results.to_csv("data/synthetic/summary/micado_results_on_synthetic_data.csv")

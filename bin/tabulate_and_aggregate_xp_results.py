@@ -10,14 +10,16 @@ from helpers.logger import init_logger
 __author__ = 'hayssam'
 import pandas as pd
 
-logger = init_logger("GATKPPROC", {})
 
-mode = "UNSUPERVISED"
+
+mode="SUPERVISED"
 XPDIR = "data/synthetic/"
 XPKEY = "synthetic"
+logger = init_logger("RESULTPROCESSING[%s]"%(mode), {})
 
-XPDIR = "data/tp53_analysis/"
-XPKEY = "pool0"
+# mode = "UNSUPERVISED"
+# XPDIR = "data/tp53_analysis/"
+# XPKEY = "pool0"
 
 
 def hash_dict(d):
@@ -414,23 +416,23 @@ if __name__ == '__main__':
 	if mode == "UNSUPERVISED":
 		gatk_aggregated_results = pd.DataFrame.from_records(
 			itertools.chain(*[flatten_sample_unsupervised(x, "gatk") for x in process_gatk_samples()]))
-		gatk_aggregated_results.to_csv(XPDIR + "summary/gatk_results_on_%s_data.csv" % XPKEY)
+		gatk_aggregated_results.to_csv(XPDIR + "summary/agg_unsupervised_gatk_results_on_%s_data.csv" % XPKEY)
 
 		varscan_aggregated_results = pd.DataFrame.from_records(
 			itertools.chain(*[flatten_sample_unsupervised(x, "varscan") for x in process_varscan_samples()]))
-		varscan_aggregated_results.to_csv(XPDIR + "summary/varscan_results_on_%s_data.csv" % XPKEY)
+		varscan_aggregated_results.to_csv(XPDIR + "summary/agg_unsupervised_varscan_results_on_%s_data.csv" % XPKEY)
 
 		micado_aggregated_results = pd.DataFrame.from_records(
 			itertools.chain(*[flatten_sample_unsupervised(x, "micado") for x in process_micado_samples()]))
-		micado_aggregated_results.to_csv(XPDIR + "summary/micado_results_on_%s_data.csv" % XPKEY)
+		micado_aggregated_results.to_csv(XPDIR + "summary/agg_unsupervised_micado_results_on_%s_data.csv" % XPKEY)
 
 
 	else:
 		gatk_aggregated_results = pd.DataFrame.from_records([flatten_sample(x, "gatk") for x in process_gatk_samples()])
-		gatk_aggregated_results.to_csv(XPDIR + "summary/gatk_results_on_%s_data.csv" % XPKEY)
+		gatk_aggregated_results.to_csv(XPDIR + "summary/agg_gatk_results_on_%s_data.csv" % XPKEY)
 
 		varscan_aggregated_results = pd.DataFrame.from_records([flatten_sample(x, "varscan") for x in process_varscan_samples()])
-		varscan_aggregated_results.to_csv(XPDIR + "summary/varscan_results_on_%s_data.csv" % XPKEY)
+		varscan_aggregated_results.to_csv(XPDIR + "summary/agg_varscan_results_on_%s_data.csv" % XPKEY)
 
 		micado_aggregated_results = pd.DataFrame.from_records([flatten_sample(x, "micado") for x in process_micado_samples()])
-		micado_aggregated_results.to_csv(XPDIR + "summary/micado_results_on_%s_data.csv" % XPKEY)
+		micado_aggregated_results.to_csv(XPDIR + "summary/agg_micado_results_on_%s_data.csv" % XPKEY)
