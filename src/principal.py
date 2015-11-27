@@ -244,10 +244,10 @@ if __name__ == "__main__":
 	PROGRAMSTART = time.time()
 	parser = ArgumentParser()
 	parser.add_argument('--kmer_length', help='Size of k-mer words', default=20, type=int, required=False)
-	parser.add_argument('--fastq', help='FASTQ files to analyse (sep="," ; with all the path)', required=False, type=str)
+	parser.add_argument('--fastq', help='FASTQ files to analyse (sep="," ; with all the path)', required=True, type=str)
 	parser.add_argument('--experiment', help='Experiment name, unique for one study (used for library construction)', required=True,
 						type=str)
-	parser.add_argument('--fasta', help='FASTA file of reference sequences (with all the path)', required=False, type=str)
+	parser.add_argument('--fasta', help='FASTA file of reference sequences (with all the path)', required=True, type=str)
 	parser.add_argument('--snp', help='SNP file for reference sequence (with all the path)', required=False, type=str)
 	parser.add_argument('--min_support_percentage', help='Minimum of read support percentage for node filter', default=3.0, type=float,
 						required=False)

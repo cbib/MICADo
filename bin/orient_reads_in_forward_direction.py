@@ -110,14 +110,15 @@ if __name__ == '__main__':
 	parser = ArgumentParser()
 	parser.add_argument('--fastq', help='FASTQ file to process', required=True, type=str)
 	parser.add_argument('--output_suffix', help='Suffix extension', required=True, type=str)
+	parser.add_argument('--output_prefix', help='Prefix extension', required=True, type=str)
 	parser.add_argument('--forward_primers', help='Comma separated list of forward primers', required=True, type=str)
 	parser.add_argument('--reverse_primers', help='Comma separated list of reverse primers', required=True, type=str)
 	args = parser.parse_args()
 
 	forward_primers, reverse_primers = validate_primers(args)
 	processed_reads = process_file(input_file=args.fastq, forward_primers=forward_primers, reverse_primers=reverse_primers)
-	output_file_name, ext = os.path.splitext(args.fastq)
-	output_file_name += "_" + args.output_suffix + ext
+	ext = os.path.splitext(args.fastq)[1]
+	output_file_name = args.output_prefix + "/" + os.path.basename(args.fastq) + "_" + args.output_suffix + ext
 	with open(output_file_name, "w") as f:
-		SeqIO.write(processed_reads, f, "fastq")
+	 	SeqIO.write(processed_reads, f, "fastq")
 	sys.exit(0)
