@@ -30,8 +30,8 @@ class ReferenceGraph:
 					# for the first kmer
 					self.dbg.add_node(curr_kmer, ref_list={record.id: startposition + i2})
 					self.dbg.add_edge(curr_kmer, next_kmer)
-		# if snp_file:
-		# 	self.inject_known_snps(snp_file)
+		if snp_file:
+		 	self.inject_known_snps(snp_file)
 
 	def inject_known_snps(self, snp_file):
 		k = self.kmer_length
