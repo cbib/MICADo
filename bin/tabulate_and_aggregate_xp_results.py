@@ -12,16 +12,16 @@ import pandas as pd
 
 
 
-mode="SUPERVISED"
-XPDIR = "data/synthetic/"
-XPKEY = "synthetic"
+# mode="SUPERVISED"
+# XPDIR = "data/synthetic/"
+# XPKEY = "synthetic"
+
+mode = "UNSUPERVISED"
+XPDIR = "data/tp53_analysis/"
+XPKEY = "pool0"
+
+
 logger = init_logger("RESULTPROCESSING[%s]"%(mode), {})
-
-# mode = "UNSUPERVISED"
-# XPDIR = "data/tp53_analysis/"
-# XPKEY = "pool0"
-
-
 def hash_dict(d):
 	return hash(tuple(sorted(d.items())))
 

@@ -18,6 +18,7 @@ GATK="java -jar bin/GenomeAnalysisTK.jar"
 PICARD_DICT="java -jar bin/picard-1.140.jar CreateSequenceDictionary"
 PICARD_RG="java -jar bin/picard-1.140.jar AddOrReplaceReadGroups"
 
+
 MICADO_N_PERMUTATIONS=1000
 include: "Snakefile_tools"
 
@@ -37,6 +38,8 @@ rule view_GMAP_align_p53_sample:
 rule test_varscan:
     input : XPDIR+"results/varscan/"+AP53SAMPLE+"_on_NM_000546_5.vcf"
     shell: 'grep -v "^#" {input} | cut -f 2,4,5'
+
+
 
 rule test_gatk:
     input : XPDIR+"results/gatk/"+AP53SAMPLE+"_on_NM_000546_5_raw.vcf"
@@ -61,7 +64,7 @@ rule test_gatk_pool_0:
 rule micado_large_deletion_bug:
     input : XPDIR+"results/micado/N_215_1.significant_alterations.json",XPDIR+"results/micado/C_215_1.significant_alterations.json"
 
-rule test_micadp_on_tips:
+rule test_micado_on_tips:
     input : XPDIR+"results/micado/N_272_2.significant_alterations.json",\
             XPDIR+"results/micado/C_272_2.significant_alterations.json",\
             XPDIR+"results/micado/N_183_1.significant_alterations.json",\
@@ -69,7 +72,7 @@ rule test_micadp_on_tips:
             XPDIR+"results/micado/N_183_2.significant_alterations.json",\
             XPDIR+"results/micado/C_183_2.significant_alterations.json"
 
-rule test_micadp_on_neg_control:
+rule test_micado_on_neg_control:
     input : XPDIR+"results/micado/N_158_1.significant_alterations.json",\
             XPDIR+"results/micado/C_158_1.significant_alterations.json",\
             XPDIR+"results/micado/N_193_1.significant_alterations.json",\
@@ -77,7 +80,7 @@ rule test_micadp_on_neg_control:
             XPDIR+"results/micado/N_319_1.significant_alterations.json",\
             XPDIR+"results/micado/C_319_1.significant_alterations.json"
 
-rule test_micadp_on_large_deletions:
+rule test_micado_on_large_deletions:
     input : XPDIR+"results/micado/C_83_1.significant_alterations.json",\
             XPDIR+"results/micado/C_83_2.significant_alterations.json",\
             XPDIR+"results/micado/N_183_1.significant_alterations.json",\
@@ -87,10 +90,11 @@ rule test_micadp_on_large_deletions:
             XPDIR+"results/micado/N_272_2.significant_alterations.json",\
             XPDIR+"results/micado/N_276_1.significant_alterations.json"
 
-rule test_micadp_on_wrongly_filtered_out_alteration: # output misses a large deletion with a very large z-score, why ?
-    input : XPDIR+"results/micado/N_192_2.significant_alterations.json",\
+rule test_micado_on_wrongly_filtered_out_alteration: # output misses a large deletion with a very large z-score, why ?
+    input : XPDIR+"results/micado/N_192_2.significant_alterations.json"
 
-
+rule test_micado_on_consecutive_alterations: # two alterations following each other, only one should be returned
+    input : XPDIR+"results/micado/C_318_2.significant_alterations.json", XPDIR+"results/micado/N_276_1.significant_alterations.json",
 
 some_tp53_samples = random.sample([os.path.splitext(x)[0] for x in os.listdir(XPDIR+"/reads/") if x.endswith(".fastq") and x[0]=="N"],50)
 # some_samples=["C_872_1", "C_1375_1", "C_1464_2", "C_1083_1", "C_1063_2", "C_522_1", "C_967_1", "C_579_2", "C_890_1", "C_412_1", "C_38_2", "C_986_2", "C_576_2", "C_49_1", "C_1212_1", "C_72_2", "C_565_1", "C_222_1", "C_1442_1"]

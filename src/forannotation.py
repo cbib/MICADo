@@ -3,6 +3,7 @@ import re
 
 from Bio import pairwise2
 import itertools
+from helpers import intset
 
 from helpers.logger import init_logger
 
@@ -18,10 +19,36 @@ def merge_identical_alterations(annotated_alterations):
 	# identify groups having exactly the same start and end
 	annotated_alterations.sort(key=lambda alt: (alt['start'], alt['end']))
 	merged_alterations = []
-	for g, alt_group in itertools.groupby(annotated_alterations,key=lambda alt: (alt['start'], alt['end'])):
+	for g, alt_group in itertools.groupby(annotated_alterations, key=lambda alt: (alt['start'], alt['end'])):
 		best_alt = max(list(alt_group), key=lambda alt: alt['alt_read_count'])
 		merged_alterations.append(best_alt)
-	return merged_alterations
+	# identify alterations belonging to the same interval
+	all_ranges = [(x['start'], x['end']) for x in merged_alterations]
+	logger.info("Will merge ranges: %s",all_ranges)
+	int_sets = intset.IntSet(*all_ranges)
+	normalized_ranges = [intset.IntSet(r) for r in int_sets._ranges]
+	# assign each alteration to a range
+	for alt in merged_alterations:
+		this_range = (alt['start'], alt['end'])
+		for i_range, a_range in enumerate(normalized_ranges):
+			if a_range.overlaps(intset.IntSet(this_range)):
+				alt['position_cluster'] = i_range
+				break
+	#
+	one_alteration_per_cluster = []
+	merged_alterations.sort(key=lambda x:x['position_cluster'])
+	for k, alt_group in itertools.groupby(merged_alterations,key=lambda x:x['position_cluster']):
+		representative_alt = max(alt_group,key=lambda x:x['alt_read_count'])
+		one_alteration_per_cluster.append(representative_alt)
+	#
+	#
+	# final_list = []
+	# merged_alterations.sort(key=lambda alt: (alt['start']))
+	# for g, alt_group in itertools.groupby(annotated_alterations,key=lambda alt: (alt['start'], alt['end'])):
+	# 	best_alt = max(list(alt_group), key=lambda alt: alt['alt_read_count'])
+	# 	merged_alterations.append(best_alt)
+
+	return one_alteration_per_cluster
 
 
 def alteration_list_to_transcrit_mutation(g_test, g_ref):

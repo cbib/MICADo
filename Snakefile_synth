@@ -4,7 +4,8 @@ import random
 REFFASTA="data/reference/NM_000546.5.fasta"
 REFFASTADICT="data/reference/NM_000546.5.dict"
 IDXGENOMENAME="NM_000546_5"
-
+XPCODE="TP53" # for micado
+MICADO_FLAGS=""
 #REFFASTA="data/reference/reference_TP53_var_alpha.fasta"
 #REFFASTADICT="data/reference/reference_TP53_var_alpha.dict"
 #IDXGENOMENAME="reference_TP53_var_alpha"
@@ -139,7 +140,8 @@ rule eval_micado_multi:
     """
 
 rule map_avail_reads_micado:
-    input: expand(XPDIR+"results/micado/{sample}.significant_alterations.json",sample=AVAIL_SYNTH_READS_FILE)
+#    input: expand(XPDIR+"results/micado/{sample}.significant_alterations.json",sample=AVAIL_SYNTH_READS_FILE)
+    input: expand(XPDIR+"results/micado/{sample}.combined_alterations.json",sample=AVAIL_SYNTH_READS_FILE)
 
 rule map_avail_reads_varscan:
     input: expand(XPDIR+"results/varscan/{sample}_on_NM_000546_5.vcf",sample=AVAIL_SYNTH_READS_FILE)
