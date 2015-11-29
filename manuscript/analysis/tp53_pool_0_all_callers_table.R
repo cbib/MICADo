@@ -98,6 +98,9 @@ pool_0_results_gatk = pool_0_results_gatk %>% mutate(uuid=stringr::str_c(sample,
 gatk_missed = known_mutations %>% filter(!(uuid %in% augment_df_with_slack(pool_0_results_gatk)$uuid))
 gatk_fp = pool_0_results_gatk %>% filter(!(uuid %in% augment_df_with_slack(known_mutations)$uuid))  %>% filter(!is.na(start))
 
+
+
+######## Manuscript table 
 # score and build table 
 
 sample_category = hash(keys=stringr::str_extract(pool_0_labels$sample,"[0-9]+_[0-9]"),values=pool_0_labels$class)
