@@ -13,9 +13,9 @@ from helpers.helpers import time_iterator, get_or_create_dir
 from helpers.logger import init_logger
 
 logger = init_logger('SEQLIB')
-logger.info("Setting up SEQLIB")
 
 experiment_name = "TP53"
+logger.info("Setting up SEQLIB for experiment %s",experiment_name)
 
 def build_read_library(FASTQFILE_PATH):
 	pattern = re.compile('([NC])_(\d+)_(\d+)')

@@ -13,7 +13,7 @@ import binascii
 
 __author__ = 'hayssam'
 
-logger = init_logger("POSPROCESS")
+logger = init_logger("POSTPROCESS")
 
 
 def hash_dict(d):
@@ -138,9 +138,12 @@ def tabulate_result(results):
 	return result_table
 
 
-results_dir = "../micado_synthetic_results/synthetic/"
+# results_dir = "../micado_synthetic_results/synthetic/"
+results_dir = "data/synthetic/results/micado/"
 avail_results = [results_dir + x for x in os.listdir(results_dir) if x.endswith(".json") and "combined" in x]
 len(avail_results)
+
+# avail_results=[results_dir+ 'C_FOOFOO_2897_150_045_3_1-1-1.combined_alterations.json']
 
 result_table = []
 for i, input_json in time_iterator(avail_results, logger=logger):
@@ -159,4 +162,4 @@ for i, input_json in time_iterator(avail_results, logger=logger):
 	result_table.extend(this_result_table)
 
 all_results = pd.DataFrame.from_records(result_table)
-all_results.to_csv("data/summary/results_on_synthetic_data.csv")
+all_results.to_csv("data/synthetic/summary/micado_results_on_synthetic_data.csv")
