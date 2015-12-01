@@ -118,7 +118,8 @@ if __name__ == '__main__':
 	forward_primers, reverse_primers = validate_primers(args)
 	processed_reads = process_file(input_file=args.fastq, forward_primers=forward_primers, reverse_primers=reverse_primers)
 	ext = os.path.splitext(args.fastq)[1]
-	output_file_name = args.output_prefix + "/" + os.path.basename(args.fastq) + "_" + args.output_suffix + ext
+	basename = os.path.splitext(os.path.basename(args.fastq))[0]
+	output_file_name = args.output_prefix + "/" + basename + "_" + args.output_suffix + ext
 	with open(output_file_name, "w") as f:
 	 	SeqIO.write(processed_reads, f, "fastq")
 	sys.exit(0)
