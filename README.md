@@ -1,4 +1,8 @@
 # MICADo
+## Version history 
+* v.1.0, 2015-12-01, version used in the accompanying paper
+
+
 
 
 ## Minimal example 
