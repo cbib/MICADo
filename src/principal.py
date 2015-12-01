@@ -39,7 +39,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 	g_reference = RG(kmer_length, fasta_file, snp_file)
 
 	# Is there cycles in reference graph?
-	if not disable_cycle_breaking and list(nx.simple_cycles(g_reference.dbg)):
+	if list(nx.simple_cycles(g_reference.dbg)):
 		if kmer_length > 70:
 			logger.info("There are always cycle(s) with k==70...exiting")
 			sys.exit(0)
