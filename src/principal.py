@@ -49,7 +49,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 							  snp_file=snp_file,
 							  experiment_name=experiment_name, min_support_percentage=min_support_percentage, n_permutations=n_permutations,
 							  destination_directory=destination_directory, export_gml=export_gml, p_value_threshold=p_value_threshold,
-							  output_results=output_results, max_len=max_len)
+							  output_results=output_results, max_len=max_len, disable_cycle_breaking=disable_cycle_breaking)
 
 	# g_patient construction
 	logger.info("Will build patient graph for %s with k==%d and minimum support = %dpct", fastq_files, kmer_length, min_support_percentage)
