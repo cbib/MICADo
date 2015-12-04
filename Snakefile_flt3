@@ -1,8 +1,8 @@
 import random
-REFFASTA="data/reference/reference_FLT3.fasta"
+REFFASTA="data/reference/NM_004119.2.fasta"
 INPUTSAM="data/experimental_results/TP53/alignments/C_model_GMAPno40_NM_000546.5.sam"
-REFFASTADICT="data/reference/reference_FLT3.dict"
-IDXGENOMENAME="reference_FLT3"
+REFFASTADICT="data/reference/NM_004119.2.dict"
+IDXGENOMENAME="NM_004119.2"
 XPCODE="FLT3"
 MICADO_FLAGS="--disable_cycle_breaking"
 
@@ -25,6 +25,8 @@ include: "Snakefile_tools"
 
 AFLT3SAMPLE="SRR413284_Normal3"
 AFLT3SAMPLE="SRR413284_Normal3_oriented"
+AFLT3SAMPLE="SRR412827_1009-003_Pretreatment_oriented"
+AFLT3SAMPLE="SRR413267_1009-003_Relapse_oriented"
 
 rule orient_sample:
     input:fastq=XPDIR+"reads/{sample}.fastq",code="bin/orient_reads_in_forward_direction.py"
@@ -37,7 +39,7 @@ rule orient_sample:
              --fastq {input.fastq} \
             --forward_primers TGCTGTGCATACAATTCCCTTGGC,GAGAGGCACTCATGTCAGAACTCA\
             --reverse_primers TCTCTGCTGAAAGGTCGCCTGTTT,AGTCCTCCTCTTCTTCCAGCCTTT \
-            --output_suffix oriented
+            --output_suffix oriented 
     """
 
 rule samtools_stats :

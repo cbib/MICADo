@@ -127,7 +127,7 @@ rule varscan_call:
     shell:"""
         /usr/bin/time -l samtools mpileup -B -f {REFFASTA} -Q 3 -d 20000 {input.aligned_reads} > {output.pileup} 2> {log}
         /usr/bin/time -l {VARSCAN} mpileup2cns {output.pileup} \
-        --strand-filter 0 --min-coverage 5 --min-reads2 5 --min-avg-qual 60 --min-var-freq 0.05 \
+        --strand-filter 0 --min-coverage 5 --min-reads2 5 --min-avg-qual 30 --min-var-freq 0.05 \
         --p-value 0.001 --output-vcf 1 --variants 1 > {output.vcf} 2>> {log}
     """
 
