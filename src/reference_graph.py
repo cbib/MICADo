@@ -25,7 +25,7 @@ class ReferenceGraph:
 				curr_kmer = seq_s[(i2):(i2 + kmer_length)]
 				next_kmer = seq_s[(i2 + 1):(i2 + 1 + kmer_length)]
 				if next_kmer not in self.dbg:
-					self.dbg.add_node(next_kmer, ref_list={record.id: startposition + i2})
+					self.dbg.add_node(next_kmer, ref_list={record.id: startposition + i2 + 1})
 				if curr_kmer in self.dbg:
 					if self.dbg[curr_kmer].get(next_kmer, 0) == 0:
 						self.dbg.add_edge(curr_kmer, next_kmer)
@@ -53,7 +53,6 @@ class ReferenceGraph:
 			reference_base = snp_code.split("|")[0]
 			kmer_around_ref = left[left_len - k:left_len] + reference_base + right[0:k]
 			snp_base = snp_code.split("|")[1]
-
 			kmer_around_snp = left[left_len - k:left_len] + snp_base + right[0:k]
 			for i2 in range(0, len(kmer_around_snp) - k):
 				self.nt_ref[line_before_split[0]] = {start_position + i2: kmer_around_snp[i2]}

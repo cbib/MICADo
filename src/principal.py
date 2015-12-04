@@ -27,9 +27,9 @@ logger.info("Import finished")
 def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_threshold, max_len, sample_key=None, fastq_files=None,
 				   fasta_file=None, snp_file=None, experiment_name=None,
 				   destination_directory=".", output_results=None, disable_cycle_breaking=False):
+
 	import seq_lib as seq_lib_module
 	seq_lib_module.library_itit(experiment_name)
-
 
 	# g_reference construction
 	logger.info("Will build reference graph with k==%d and fasta=%s & snp=%s", kmer_length, fasta_file, snp_file)
@@ -48,13 +48,13 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 							destination_directory=destination_directory, output_results=output_results, 
 							disable_cycle_breaking=disable_cycle_breaking)
 
-	# g_patient construction
-	logger.info("Will build patient graph for %s with k==%d and minimum support = %dpct", fastq_files, kmer_length, min_support_percentage)
-	fastq_files = fastq_files.split(",")
-	g_patient = PG(fastq_files, kmer_length)
-	logger.info("Before cleaning: %d nodes", len(g_patient.dbg))
-	g_patient.graph_cleaned_init(min_support_percentage)
-	logger.info("After cleaning: %d nodes", len(g_patient.dbgclean))
+# 	# g_patient construction
+# 	logger.info("Will build patient graph for %s with k==%d and minimum support = %dpct", fastq_files, kmer_length, min_support_percentage)
+# 	fastq_files = fastq_files.split(",")
+# 	g_patient = PG(fastq_files, kmer_length)
+# 	logger.info("Before cleaning: %d nodes", len(g_patient.dbg))
+# 	g_patient.graph_cleaned_init(min_support_percentage)
+# 	logger.info("After cleaning: %d nodes", len(g_patient.dbgclean))
 
 	# Is there cycles in patient graph?
 	if not disable_cycle_breaking and list(nx.simple_cycles(g_patient.dbgclean)):
@@ -68,37 +68,38 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 							 fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name,
 							 destination_directory=destination_directory, output_results=output_results)
 
-	# copy g_patient cleaned and remove reference edges on it (.dbg_refrm creation)
-	g_patient.graph_rmRefEdges_init(g_patient.dbgclean, g_reference.dbg)
 
-	# search for alternative paths in dbg_refrm (.alteration_list creation)
-	g_patient.alteration_list_init(g_reference.dbg, kmer_length, min_support_percentage, max_len)
+# 	# copy g_patient cleaned and remove reference edges on it (.dbg_refrm creation)
+# 	g_patient.graph_rmRefEdges_init(g_patient.dbgclean, g_reference.dbg)
 
-	### Permutation test ###
-	logger.info("Will create random graphs")
-	all_possible_kmers = set()
-	for an_alt in g_patient.alteration_list:
-		all_possible_kmers.update(an_alt.reference_path)
-		all_possible_kmers.update(an_alt.alternative_path)
+# 	# search for alternative paths in dbg_refrm (.alteration_list creation)
+# 	g_patient.alteration_list_init(g_reference.dbg, kmer_length, min_support_percentage, max_len)
 
-	for _, _ in time_iterator(range(0, n_permutations), logger, msg_prefix="permuting"):
-		g_random = RRG(g_patient.coverage, kmer_length, restrict_to=all_possible_kmers, seq_lib_module=seq_lib_module)
-		for i in range(0, len(g_patient.alteration_list)):
-			i_alteration = g_patient.alteration_list[i]
-			ref_path = i_alteration.reference_path
-			alt_path = i_alteration.alternative_path
-			g_random_data = g_random.check_path(ref_path,
-												alt_path,
-												i_alteration.min_coverage)
-			i_alteration.random_ratio_list.append(g_random_data[0])
-			i_alteration.random_reference_count_list.append(g_random_data[1])
-			i_alteration.random_alternative_count_list.append(g_random_data[2])
+# 	### Permutation test ###
+# 	logger.info("Will create random graphs")
+# 	all_possible_kmers = set()
+# 	for an_alt in g_patient.alteration_list:
+# 		all_possible_kmers.update(an_alt.reference_path)
+# 		all_possible_kmers.update(an_alt.alternative_path)
 
-	logger.info("Will generate p-values for %d possible alterations", len(g_patient.alteration_list))
-	for i in range(0, len(g_patient.alteration_list)):
-		g_patient.alteration_list[i].pvalue_init()
+# 	for _, _ in time_iterator(range(0, n_permutations), logger, msg_prefix="permuting"):
+# 		g_random = RRG(g_patient.coverage, kmer_length, restrict_to=all_possible_kmers, seq_lib_module=seq_lib_module)
+# 		for i in range(0, len(g_patient.alteration_list)):
+# 			i_alteration = g_patient.alteration_list[i]
+# 			ref_path = i_alteration.reference_path
+# 			alt_path = i_alteration.alternative_path
+# 			g_random_data = g_random.check_path(ref_path,
+# 												alt_path,
+# 												i_alteration.min_coverage)
+# 			i_alteration.random_ratio_list.append(g_random_data[0])
+# 			i_alteration.random_reference_count_list.append(g_random_data[1])
+# 			i_alteration.random_alternative_count_list.append(g_random_data[2])
 
-	g_patient.significant_alteration_list_init(p_value_threshold=p_value_threshold)
+# 	logger.info("Will generate p-values for %d possible alterations", len(g_patient.alteration_list))
+# 	for i in range(0, len(g_patient.alteration_list)):
+# 		g_patient.alteration_list[i].pvalue_init()
+
+# 	g_patient.significant_alteration_list_init(p_value_threshold=p_value_threshold)
 
 	# Annotation
 	annotate_and_output_results(g_patient, g_reference, output_results)
@@ -116,41 +117,41 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 					"%s\t%s\t0\t%d\n" % (sample_key, snp_id, len(g_patient.dbg.node[g_reference.snp[snp_id][1]]['read_list_n'])))
 
 
-def annotate_and_output_results(g_patient, g_reference, output_results):
-	import forannotation as ANNO
-	annotated_alterations = ANNO.alteration_list_to_transcrit_mutation(g_patient, g_reference)
-	# add experiment arguments
-	PROGRAMEND = time.time()
-	experiment_description = {}
-	this_timestamp = get_timestamp()
-	experiment_description['timestamp'] = this_timestamp
-	experiment_description['exec_time'] = PROGRAMEND - PROGRAMSTART
-	experiment_description['parameters'] = vars(args)
-	experiment_description['n_reads'] = g_patient.n_reads
-	experiment_description['git_revision_hash'] = get_git_revision_hash()
-	# experiment_description['memory_usage'] = process.memory_info().rss
+# def annotate_and_output_results(g_patient, g_reference, output_results):
+# 	import forannotation as ANNO
+# 	annotated_alterations = ANNO.alteration_list_to_transcrit_mutation(g_patient, g_reference)
+# 	# add experiment arguments
+# 	PROGRAMEND = time.time()
+# 	experiment_description = {}
+# 	this_timestamp = get_timestamp()
+# 	experiment_description['timestamp'] = this_timestamp
+# 	experiment_description['exec_time'] = PROGRAMEND - PROGRAMSTART
+# 	experiment_description['parameters'] = vars(args)
+# 	experiment_description['n_reads'] = g_patient.n_reads
+# 	experiment_description['git_revision_hash'] = get_git_revision_hash()
+# 	# experiment_description['memory_usage'] = process.memory_info().rss
 
-	experiment_description['significant_alterations'] = annotated_alterations
-	experiment_description['graphs'] = {
-		"coverage_total": g_patient.coverage['total'],
-		"before_cleaning": len(g_patient.dbg),
-		"after_clearning": len(g_patient.dbgclean)
-	}
-	experiment_description['all_alterations'] = []
-	for x in g_patient.alteration_list:
-		alteration_description = x.__dict__
-		del alteration_description['reference_path']
-		del alteration_description['alternative_path']
-		del alteration_description['random_alternative_count_list']
-		del alteration_description['random_reference_count_list']
-		del alteration_description['random_ratio_list']
-		alteration_description['edit_operations'] = find_edit_operations(x.reference_sequence, x.alternative_sequence)
-		alteration_description['alignment'] = pairwise2.align.globalms(x.reference_sequence, x.alternative_sequence, 2, -3, -5, -2)[0]
-		experiment_description['all_alterations'].append(alteration_description)
-	# print json.dumps(experiment_description)
-	if output_results:
-		with open(output_results, "w") as f:
-			json.dump(experiment_description, f)
+# 	experiment_description['significant_alterations'] = annotated_alterations
+# 	experiment_description['graphs'] = {
+# 		"coverage_total": g_patient.coverage['total'],
+# 		"before_cleaning": len(g_patient.dbg),
+# 		"after_clearning": len(g_patient.dbgclean)
+# 	}
+# 	experiment_description['all_alterations'] = []
+# 	for x in g_patient.alteration_list:
+# 		alteration_description = x.__dict__
+# 		del alteration_description['reference_path']
+# 		del alteration_description['alternative_path']
+# 		del alteration_description['random_alternative_count_list']
+# 		del alteration_description['random_reference_count_list']
+# 		del alteration_description['random_ratio_list']
+# 		alteration_description['edit_operations'] = find_edit_operations(x.reference_sequence, x.alternative_sequence)
+# 		alteration_description['alignment'] = pairwise2.align.globalms(x.reference_sequence, x.alternative_sequence, 2, -3, -5, -2)[0]
+# 		experiment_description['all_alterations'].append(alteration_description)
+# 	# print json.dumps(experiment_description)
+# 	if output_results:
+# 		with open(output_results, "w") as f:
+# 			json.dump(experiment_description, f)
 
 
 if __name__ == "__main__":
