@@ -13,10 +13,7 @@ class ReferenceGraph:
 		self.kmer_length = kmer_length
 		# Reference
 		for record in SeqIO.parse(fasta_file, "fasta", generic_dna):
-			try:
-				startposition = int(record.description.split("\t")[1]) + 1
-			except IndexError:
-				startposition = 0
+			startposition = 0
 			seq_s = str(record.seq)
 			for i2 in range(0, len(seq_s) - kmer_length):
 				curr_kmer = seq_s[(i2):(i2 + kmer_length)]
