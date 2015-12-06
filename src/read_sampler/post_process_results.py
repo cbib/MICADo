@@ -141,7 +141,7 @@ def tabulate_result(results):
 
 # results_dir = "../micado_synthetic_results/synthetic/"
 results_dir = "data/synthetic/results/micado/"
-avail_results = [results_dir + x for x in os.listdir(results_dir) if x.endswith(".json") and "combined" in x]
+avail_results = [results_dir + x for x in os.listdir(results_dir) if x.endswith(".combined_alterations.json")]
 len(avail_results)
 
 # avail_results=[results_dir+ 'C_FOOFOO_2897_150_045_3_1-1-1.combined_alterations.json']

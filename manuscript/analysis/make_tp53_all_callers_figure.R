@@ -14,7 +14,6 @@ known_snps_pos=c(417,664,588,768,841)
 # MICADo
 
 pool_0_results_micado = fread("data/tp53_analysis/summary/agg_unsupervised_micado_results_on_pool0_data.csv")
-
 pool_0_results_micado=pool_0_labels %>% inner_join(pool_0_results_micado)
 grouped_results_micado = pool_0_results_micado %>% group_by(sample_key, class) %>% summarise(n_significant_alterations = sum(z_score >= 37, na.rm = T)) %>% ungroup()
 grouped_results_micado %>% filter(sample_key=="319_1")
@@ -56,7 +55,7 @@ grouped_results_all_caller=rbind(
 )
 
 g=grouped_results_all_caller %>% ggplot(aes(x=sample_key,y=n_significant_alterations,fill=caller,label=sample_key))+geom_bar(stat="identity")+facet_grid(caller~class,scale="free")
-g=g+scale_y_continuous(breaks=0:15,limits=c(0,14))
+g=g+scale_y_continuous(breaks=seq(0,15,2),limits=c(0,14))
 g=g+theme(
   axis.title.y = element_text(face="bold", colour="#990000", size=11),
   axis.title.x = element_text(face="bold", colour="#990000", size=11),
