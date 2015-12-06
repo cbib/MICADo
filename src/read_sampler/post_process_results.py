@@ -36,6 +36,7 @@ def decorate_micado_alt(alt):
 		"origin": "micado",
 		"start": alt['start'],
 		"pvalue_ratio": alt['pvalue_ratio'],
+		"z_score": alt['z_score'],
 		"alt_type": alt['alt_type'],
 		"len": alt['end'] - alt['start'] + 1 if alt['alt_type'] == "I" else 0,
 		"cigar": alt['compact_cigar'],
