@@ -10,8 +10,11 @@ setwd("~/Documents/MICADo")
 # obtained by running bin/tabulate_and_aggregate_xp_results.py
 
 micado_result = fread("data/synthetic/summary/agg_micado_results_on_synthetic_data.csv") 
+
 gatk_data = fread("data/synthetic/summary/agg_gatk_results_on_synthetic_data.csv") 
 varscan_data = fread("data/synthetic/summary/agg_varscan_results_on_synthetic_data.csv") 
+
+varscan_data %>% filter(fraction_altered==0.035,n_reads==150) %>% select(ends_with("p"),ends_with("n"),recall)
 
 combined_results = rbind(micado_result,varscan_data ,gatk_data) %>% filter(n_reads!=1500)
 table(micado_result$n_alterations)
@@ -35,13 +38,13 @@ agg_results_discrete$caller = factor(agg_results_discrete$caller,levels=c("gatk"
 g=ggplot(agg_results_discrete,aes(x=factor(fraction_altered),fill=result_class))+geom_histogram(position="fill")+facet_grid(n_reads~caller)+scale_fill_brewer(palette=1,type="seq",name="Class")
 g=g+scale_x_discrete(name="Fraction of altered reads (%)",labels=c("3.5%","4%","4.5%","5%","10%","50%","80%"))+theme(legend.position="top")+scale_y_continuous(name="Proportion of results",labels=c("0%","25%","50%","75%","100%"))
 
-ggsave(plot=g,filename="manuscript/figures/performances_on_synthetic_data.pdf",w=11.57,h=7.85)
+# ggsave(plot=g,filename="manuscript/figures/performances_on_synthetic_data.pdf",w=11.57,h=7.85)
 
 ## Detailed results 
 #
+
 # data file obtained by runnig bin/post_process_results.py
 micado_detailed_results=fread("data/synthetic/summary/micado_results_on_synthetic_data.csv")
-
 #typing
 micado_detailed_results$git_revision_hash=factor(micado_detailed_results$git_revision_hash)
 micado_detailed_results$injected_alt_type=factor(micado_detailed_results$injected_alt_type)
@@ -50,11 +53,21 @@ micado_detailed_results$injected_len=factor(micado_detailed_results$injected_len
 micado_detailed_results$n_reads=factor(micado_detailed_results$n_reads)
 micado_detailed_results$timestamp=factor(micado_detailed_results$timestamp)
 micado_detailed_results$tool_sampler_alt_weight=factor(micado_detailed_results$tool_sampler_alt_weight)
-micado_detailed_results$seed=factor(micado_detailed_results$seed)
+micado_detailed_results$tool_sampler_seed=factor(micado_detailed_results$tool_sampler_seed)
 micado_detailed_results$tool_sampler_fraction_altered=factor(micado_detailed_results$tool_sampler_fraction_altered)
 
 micado_detailed_results=micado_detailed_results %>% filter(n_reads!=499) # 4 outliers
-micado_detailed_results=micado_detailed_results %>% filter(injected_pos<=1000) # off target alignments to remove
+
+# micado_detailed_results %>% filter(is.na(micado_z_score))
+micado_detailed_results = micado_detailed_results %>% filter(micado_z_score>=10 | is.na(micado_hash))
+
+micado_detailed_results=micado_detailed_results %>% filter(injected_pos<=1200) # off target alignments to remove
+# remove fp for the figure 
+micado_detailed_results = micado_detailed_results %>% filter((injected_alt_type %in% c("D","I","X")))
+
+# micado_detailed_results %>% select(tool_sampler_n_alterations,)
+
+# foo=micado_detailed_results %>% group_by(n_reads,tool_sampler_fraction_altered) %>% summarise(n())
 
 micado_detailed_results=micado_detailed_results %>% mutate(class = derivedFactor(
   "tp" = is_match,
@@ -62,16 +75,23 @@ micado_detailed_results=micado_detailed_results %>% mutate(class = derivedFactor
   "fp" = is.na(injected_hash)
 ),.ordered=TRUE,.sort='given')
 
-fraction_label = as.numeric(as.character(unique(micado_results$tool_sampler_fraction_altered)))*100
+fraction_label = as.numeric(as.character(levels(micado_detailed_results$tool_sampler_fraction_altered)))*100
 
 ggplot(micado_detailed_results,aes(x=tool_sampler_fraction_altered,fill=class))+geom_bar(position="fill")+
   facet_grid(n_reads~injected_alt_type,scale="free")+ 
   scale_x_discrete(labels=fraction_label)+
   xlab("Fraction of reads altered (%)")+
   ylab("Proportion")+
-  scale_fill_manual(values=c("forestgreen","firebrick3"))
+  scale_fill_manual(values=c("forestgreen","firebrick3","blue"))
+# 
+# ggplot(micado_detailed_results,aes(x=tool_sampler_fraction_altered,fill=class))+geom_bar(position="fill")+
+#   facet_grid(injected_alt_type~n_reads,scale="free")+ 
+#   scale_x_discrete(labels=fraction_label)+
+#   xlab("Fraction of reads altered (%)")+
+#   ylab("Proportion")+
+#   scale_fill_manual(values=c("forestgreen","firebrick3","blue"))
 
-ggsave("manuscript/figures/match_by_alteration_type.pdf",w=11.57,h=5.85)
+#ggsave("manuscript/figures/match_by_alteration_type.pdf",w=11.57,h=5.85)
 
 
 

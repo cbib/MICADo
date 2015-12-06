@@ -104,7 +104,7 @@ rule combine_json:
     input : micado_results=XPDIR+"results/micado/{sample}.significant_alterations.json",\
             sampler_results=XPDIR+"results/sampler/{sample}.alterations.json"
 
-    output:combined_json=XPDIR+"results/micado/{sample}.combined_alterations.temp.json",
+    output:combined_json=temp(XPDIR+"results/micado/{sample}.combined_alterations.temp.json"),
            cleaned_json=XPDIR+"results/micado/{sample}.combined_alterations.json"
     shell:"""
         # merge known alterations and identified alterations
