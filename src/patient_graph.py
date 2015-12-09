@@ -46,7 +46,7 @@ def identify_anchor_kmer_in_reference_graph(reference_graph, kmer_to_anchor, lef
 	# print "Will search anchor in ",list(node_dists)
 	min_dist = min(node_dists, key=itemgetter(1))[1]
 	node_dists = [x for x in node_dists if x[1] == min_dist]
-	print "Min possible dist is", min_dist
+	logger.debug("Min possible dist is %f", min_dist)
 	if rightmost:
 		score_func = lambda x: (x[1] - min_dist) + abs(toposort[x[0]] - (toposort[rightmost] - path_length))
 	elif leftmost:

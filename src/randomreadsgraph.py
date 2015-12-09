@@ -50,7 +50,7 @@ class RandomReadsGraph:
 			return set()
 		current_set = set(self.kmer_map[a_path[0]])
 		if verbose:
-			print len(current_set)
+			logger.info("Current size is %d",len(current_set))
 
 		assert isinstance(current_set, set)
 
@@ -64,7 +64,7 @@ class RandomReadsGraph:
 				logger.critical("Missing edge between %s -> %s. After update, read set is of size %d", a_path[i], a_node, len(current_set))
 
 			if verbose:
-				print len(current_set)
+				logger.info("Current size is %d",len(current_set))
 			if len(current_set) < 1:
 				# premature exit, we reached an empty set 	
 				return current_set
