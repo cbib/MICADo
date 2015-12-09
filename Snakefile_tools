@@ -228,4 +228,19 @@ rule gatk_call:
     """
 
 
+rule mutect_call:
+    input: aligned_reads = XPDIR+"gatk_temp/{sample}.rg.sorted.bam",fa_dict=REFFASTADICT,\
+           indexed_reads = XPDIR+"gatk_temp/{sample}.rg.sorted.bam.bai"
+    log : "exec_logs/mutect_{sample}.txt"
+    output: raw_vcfs=XPDIR+"results/mutect/{sample}_raw.vcf"
+    shell:"""
+
+	## HaplotypeCaller (mutect version)
+	/usr/bin/time -l {GATK} -T MuTect2 -R {REFFASTA} -I:tumor {input.aligned_reads} -o {output.raw_vcfs} \
+	     --emitRefConfidence GVCF --variant_index_type LINEAR --variant_index_parameter 128000 \
+         --dontUseSoftClippedBases \
+	     --min_base_quality_score 30 --forceActive 2>> {log}
+    """
+
+
 # helpers

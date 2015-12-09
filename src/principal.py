@@ -52,6 +52,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 	logger.info("Will build patient graph for %s with k==%d and minimum support = %dpct", fastq_files, kmer_length, min_support_percentage)
 	fastq_files = fastq_files.split(",")
 	g_patient = PG(fastq_files, kmer_length)
+
 	logger.info("Before cleaning: %d nodes", len(g_patient.dbg))
 	g_patient.graph_cleaned_init(min_support_percentage)
 	logger.info("After cleaning: %d nodes", len(g_patient.dbgclean))
@@ -97,11 +98,13 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 				fragment_print,
 				reads_print,
 			))
->>>>>>> correct position snp and next-kmer ; new snp for FLT3:rs34374211
-
 	# copy g_patient cleaned and remove reference edges on it (.dbg_refrm creation)
-	g_patient.graph_rmRefEdges_init(g_patient.dbgclean, g_reference.dbg)
+	logger.info("Ref: Successors of %s: %s", "CTCCCCAGCCAAAGAAGA", g_reference.dbg['CTCCCCAGCCAAAGAAGA'])
+	logger.info("Patient: Successors of %s: %s", "CTCCCCAGCCAAAGAAGA", g_patient.dbg['CTCCCCAGCCAAAGAAGA'])
 
+	g_patient.graph_rmRefEdges_init(g_patient.dbgclean, g_reference.dbg)
+	assert "CTCCCCAGCCAAAGAAGA" in g_patient.dbg_refrm
+	assert "ACTGGATGGAGAATATTT" in g_patient.dbg_refrm
 	# search for alternative paths in dbg_refrm (.alteration_list creation)
 	g_patient.alteration_list_init(g_reference.dbg, kmer_length, min_support_percentage, max_len)
 

@@ -15,7 +15,7 @@ known_snps_pos=c(417,664,588,768,841)
 
 pool_0_results_micado = fread("data/tp53_analysis/summary/agg_unsupervised_micado_results_on_pool0_data.csv")
 pool_0_results_micado=pool_0_labels %>% inner_join(pool_0_results_micado)
-grouped_results_micado = pool_0_results_micado %>% group_by(sample_key, class) %>% summarise(n_significant_alterations = sum(z_score >= 37, na.rm = T)) %>% ungroup()
+grouped_results_micado = pool_0_results_micado %>% group_by(sample_key, class) %>% summarise(n_significant_alterations = sum(z_score >= 10, na.rm = T)) %>% ungroup()
 grouped_results_micado %>% filter(sample_key=="319_1")
 
 
@@ -62,4 +62,4 @@ g=g+theme(
   axis.text.x  = element_text(angle=90, vjust=0.5, size=11))+xlab("Sample")+ylab("Number of significant alterations")
 g=g+scale_fill_discrete(guide=FALSE)
 print(g)
-ggsave(g,filename = "manuscript/figures/tp53_all_callers_results.pdf",w=11.57,h=5.85)
+# ggsave(g,filename = "manuscript/figures/tp53_all_callers_results.pdf",w=11.57,h=5.85)
