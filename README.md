@@ -38,7 +38,7 @@ python src/principal.py
 	--fasta data/reference/reference_TP53.fasta  # reference sequence 
 	--snp data/reference/snp_TP53.tab # snp file 
 	--kmer_length 20 # K-mer used for the de Bruijn graph construction 
-	—experiment TP53 # Experiment label to build a cohort sequence library for resampling
+	—-experiment TP53 # Experiment label to build a cohort sequence library for resampling
 	--npermutations 100 # number of resampling to perform for the p-value computation 
 ```
 
