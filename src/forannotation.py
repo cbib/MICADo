@@ -73,6 +73,8 @@ def alteration_list_to_transcrit_mutation(g_test, g_ref):
 		alteration_type = compact_cigard[3]
 		# print g_ref.dbg.node[g_test.significant_alteration_list[i_alteration].reference_path[0]]['ref_list']
 		ref_path_list = g_ref.dbg.node[curr_alteration.reference_path[0]]['ref_list']
+
+		# TODO generify
 		if len(ref_path_list) == 1:
 			splicing_variant = ref_path_list.keys()[0]
 		elif "NM_000546.5" in ref_path_list:

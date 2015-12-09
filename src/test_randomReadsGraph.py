@@ -27,10 +27,10 @@ def micado_multi(sample_key, n_perm=25):
 												 fasta_file='data/reference/NM_000546.5.fasta',
 												 snp_file='data/reference/snp_TP53.tab')
 	# build patient graph
-	g_patient = patient_graph.PatientGraph(['data/tp53_analysis/reads/%s.fastq' % sample_key], kmer_length)
+	g_patient = patient_graph.SampleGraph(['data/tp53_analysis/reads/%s.fastq' % sample_key], kmer_length)
 	g_patient.graph_cleaned_init(3.0)
 	# copy g_patient cleaned and remove reference edges on it (.dbg_refrm creation)
-	g_patient.graph_rmRefEdges_init(g_patient.dbgclean, g_reference.dbg)
+	g_patient.graph_remove_reference_edges(g_patient.dbgclean, g_reference.dbg)
 	# search for alternative paths in dbg_refrm (.alteration_list creation)
 	g_patient.alteration_list_init(g_reference.dbg, kmer_length, 3.0, max_len)
 

@@ -23,20 +23,6 @@ logger = init_logger("Patient graph")
 pattern = re.compile('.+\/(\w+)')
 
 
-def identify_anchor_kmer_in_reference_graph_by_composition(reference_graph, kmer_to_anchor):
-	bimer_vectorizer = CountVectorizer(ngram_range=(1, 1), analyzer='char')
-	anchor_vec = bimer_vectorizer.fit_transform([kmer_to_anchor]).todense().A
-	print anchor_vec
-	ref_nodes = reference_graph.nodes()
-	ref_vec = bimer_vectorizer.transform(ref_nodes).todense().A
-	print ref_vec
-	# find closest
-	distances = cdist(anchor_vec, ref_vec)
-	min_index = np.argmin(distances)
-	min_dist = distances[0, min_index]
-	other_min_index = [(i, x) for i, x in enumerate(distances[0]) if x == min_dist]
-	print [ref_nodes[i] for i, x in other_min_index], min_dist, kmer_to_anchor
-
 
 def identify_anchor_kmer_in_reference_graph(reference_graph, kmer_to_anchor, leftmost=None, rightmost=None, path_length=None):
 	"""
@@ -71,7 +57,7 @@ def identify_anchor_kmer_in_reference_graph(reference_graph, kmer_to_anchor, lef
 	return dist_sorted[0][0]
 
 
-class PatientGraph:
+class SampleGraph:
 	def __init__(self, fastq_files, kmer_length):
 		self.coverage = {}
 		self.coverage['total'] = 0
@@ -129,7 +115,7 @@ class PatientGraph:
 		self.dbgclean.remove_nodes_from(nodes_count_inf_seuil)
 
 	# Removes edges in G_sample_test which are present in g_reference
-	def graph_rmRefEdges_init(self, G2analyse, g_reference):
+	def graph_remove_reference_edges(self, G2analyse, g_reference):
 		self.dbg_refrm = G2analyse.copy()
 		self.dbg_refrm.remove_edges_from(g_reference.edges())
 
@@ -139,8 +125,6 @@ class PatientGraph:
 		# Only nodes in dbg_refrm & G_ref and with in degree > 0 for end nodes and out degree > 0 for start nodes  
 		G_ref_nodes_set = set(G_ref.nodes())
 		shared_nodes = list(set(self.dbg_refrm.nodes()) & G_ref_nodes_set)
-
-
 
 		out_d = self.dbg_refrm.out_degree()
 		in_d = self.dbg_refrm.in_degree()
@@ -179,7 +163,8 @@ class PatientGraph:
 						read_set_pathAlt_G_sample.append(set(self.dbg_refrm.node[node]['read_list_n']))
 					intersect_allnodes_pathAlt_G_sample = set.intersection(*read_set_pathAlt_G_sample)
 					if len(intersect_allnodes_pathAlt_G_sample) < total_coverage * min_support / 100:
-						logger.debug("Skipping due to insufficent coverage %d vs %d",len(intersect_allnodes_pathAlt_G_sample),total_coverage * min_support / 100)
+						logger.debug("Skipping due to insufficent coverage %d vs %d", len(intersect_allnodes_pathAlt_G_sample),
+									 total_coverage * min_support / 100)
 						continue
 					# Reference path choice
 					# Replace start/end if it's a tips
