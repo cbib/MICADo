@@ -61,6 +61,10 @@ rule test_varscan_pool_0:
 rule test_gatk_pool_0:
     input: expand(XPDIR+"results/gatk/{sample}_on_NM_000546_5_raw.vcf",sample=pool_0_samples)
 
+rule test_mutect_pool_0:
+    input: expand(XPDIR+"results/mutect/{sample}_on_NM_000546_5_raw.vcf",sample=pool_0_samples)
+
+
 rule micado_large_deletion_bug:
     input : XPDIR+"results/micado/N_215_1.significant_alterations.json",XPDIR+"results/micado/C_215_1.significant_alterations.json"
 

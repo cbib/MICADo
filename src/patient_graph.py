@@ -139,10 +139,14 @@ class PatientGraph:
 		# Only nodes in dbg_refrm & G_ref and with in degree > 0 for end nodes and out degree > 0 for start nodes  
 		G_ref_nodes_set = set(G_ref.nodes())
 		shared_nodes = list(set(self.dbg_refrm.nodes()) & G_ref_nodes_set)
+
+
+
 		out_d = self.dbg_refrm.out_degree()
 		in_d = self.dbg_refrm.in_degree()
 		shared_nodes_start = [x for x in shared_nodes if out_d[x] > 0]
 		shared_nodes_end = [x for x in shared_nodes if in_d[x] > 0]
+
 		# Add tips end & start in shared_nodes_end & start
 		out_degree_g_testclean_dict = self.dbgclean.out_degree()
 		in_degree_g_testclean_dict = self.dbgclean.in_degree()
@@ -156,13 +160,16 @@ class PatientGraph:
 						   in_degree_g_testclean_dict[key] == 0 and key not in G_ref and key in self.kmer_start_set]
 		shared_nodes_start.extend(start_tips_list)
 		shared_nodes_end.extend(end_tips_list)
+
 		# Search for alternative paths
 		for node_start in shared_nodes_start:
 			start_node = node_start
 			for node_end in shared_nodes_end:
 				end_node = node_end
+				logger.debug("Testing path between %s and %s", node_start, node_end)
 				for alternative_path in nx.all_simple_paths(self.dbg_refrm, node_start, node_end):
 					if len(set(alternative_path) & G_ref_nodes_set) > 2:
+						logger.debug("Skipping due to length >2")
 						continue
 					# Compute coverage of the altenative path
 					total_coverage = max([self.total_coverage_node(alt_nodes) for alt_nodes in alternative_path])
@@ -171,7 +178,8 @@ class PatientGraph:
 					for node in alternative_path:
 						read_set_pathAlt_G_sample.append(set(self.dbg_refrm.node[node]['read_list_n']))
 					intersect_allnodes_pathAlt_G_sample = set.intersection(*read_set_pathAlt_G_sample)
-					if len(intersect_allnodes_pathAlt_G_sample) <= total_coverage * min_support / 100:
+					if len(intersect_allnodes_pathAlt_G_sample) < total_coverage * min_support / 100:
+						logger.debug("Skipping due to insufficent coverage %d vs %d",len(intersect_allnodes_pathAlt_G_sample),total_coverage * min_support / 100)
 						continue
 					# Reference path choice
 					# Replace start/end if it's a tips

@@ -28,7 +28,6 @@ logger.info("Import finished")
 def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_threshold, max_len, sample_key=None, fastq_files=None,
 				   fasta_file=None, snp_file=None, experiment_name=None,
 				   destination_directory=".", export_gml=False, output_results=None, disable_cycle_breaking=False):
-	
 	if experiment_name == "TP53":
 		import seq_lib_TP53 as seq_lib_module
 	else:
@@ -56,6 +55,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 	logger.info("Will build patient graph for %s with k==%d and minimum support = %dpct", fastq_files, kmer_length, min_support_percentage)
 	fastq_files = fastq_files.split(",")
 	g_patient = PG(fastq_files, kmer_length)
+
 	logger.info("Before cleaning: %d nodes", len(g_patient.dbg))
 	g_patient.graph_cleaned_init(min_support_percentage)
 	logger.info("After cleaning: %d nodes", len(g_patient.dbgclean))
@@ -104,8 +104,12 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 			))
 
 	# copy g_patient cleaned and remove reference edges on it (.dbg_refrm creation)
-	g_patient.graph_rmRefEdges_init(g_patient.dbgclean, g_reference.dbg)
+	logger.info("Ref: Successors of %s: %s", "CTCCCCAGCCAAAGAAGA", g_reference.dbg['CTCCCCAGCCAAAGAAGA'])
+	logger.info("Patient: Successors of %s: %s", "CTCCCCAGCCAAAGAAGA", g_patient.dbg['CTCCCCAGCCAAAGAAGA'])
 
+	g_patient.graph_rmRefEdges_init(g_patient.dbgclean, g_reference.dbg)
+	assert "CTCCCCAGCCAAAGAAGA" in g_patient.dbg_refrm
+	assert "ACTGGATGGAGAATATTT" in g_patient.dbg_refrm
 	# search for alternative paths in dbg_refrm (.alteration_list creation)
 	g_patient.alteration_list_init(g_reference.dbg, kmer_length, min_support_percentage, max_len)
 
