@@ -34,8 +34,8 @@ For any information or help running MICADo, you can get in touch with:
 ```{bash}
 python src/principal.py 
 	--samplekey 158_1  # Sample label for the results 
-	--fastq data/fastq/TP53/C_158_1.fastq,data/fastq/TP53/N_158_1.fastq  # sample fasta file
-	--fasta data/reference/reference_TP53.fasta  # reference sequence 
+	--fastq data/fastq/TP53/C_158_1.fastq,data/fastq/TP53/N_158_1.fastq  # sample fastq file
+	--fasta data/reference/reference_TP53.fasta  # reference sequence
 	--snp data/reference/snp_TP53.tab # snp file 
 	--kmer_length 20 # K-mer used for the de Bruijn graph construction 
 	—-experiment TP53 # Experiment label to build a cohort sequence library for resampling
