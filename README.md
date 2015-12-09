@@ -13,15 +13,23 @@ For any information or help running MICADo, you can get in touch with:
 * [Hayssam Soueidan](mailto:massyah[AT]gmail.com)
 * [Macha Nikolski](mailto:macha[AT]labri.fr)
 
-
-
 ## Version history 
 * v.1.0, 2015-12-01, first release, version used in the accompanying paper
 
+## Installation
+
+### System Requirements
+
+MICADo was implemented in Python (python 2.7 ; http://www.python.org/) and tested under Linux and Mac OS environments. 
+Python modules required are listed in requierement.txt. Use the following comand line to install them:
+
+```{bash}
+pip install -r requirements.txt
+```
 
 ## Usage
 
-### Requirements
+### Data Input
 * Fastq file of the sample of interest, targeted capture 
 * Fastq files of the samples of the cohort, generated using the same library preparation and the same sequencer 
 * Reference sequence of the targeted region (FASTA). This can be a multi-fasta file describing e.g. multiple isoforms. 
@@ -34,12 +42,12 @@ For any information or help running MICADo, you can get in touch with:
 ```{bash}
 python src/principal.py 
 	--samplekey 158_1  # Sample label for the results 
-	--fastq data/fastq/TP53/C_158_1.fastq,data/fastq/TP53/N_158_1.fastq  # sample fastq file
-	--fasta data/reference/reference_TP53.fasta  # reference sequence
+	--fastq data/fastq/TP53/C_158_1.fastq,data/fastq/TP53/N_158_1.fastq  # Sample fastq file
+	--fasta data/reference/reference_TP53.fasta  # Reference sequence in fasta format 
 	--snp data/reference/snp_TP53.tab # snp file 
 	--kmer_length 20 # K-mer used for the de Bruijn graph construction 
 	—-experiment TP53 # Experiment label to build a cohort sequence library for resampling
-	--npermutations 100 # number of resampling to perform for the p-value computation 
+	--npermutations 100 # Number of resampling to perform for computation of significance scores
 ```
 
 
