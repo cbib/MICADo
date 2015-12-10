@@ -24,7 +24,7 @@ MICADo was implemented in Python (python 2.7 ; http://www.python.org/) and teste
 Python modules required are listed in requierement.txt. Use the following comand line to install them:
 
 ```{bash}
-pip install -r requirements.txt
+sudo pip install -r requirements.txt
 ```
 
 ## Usage
