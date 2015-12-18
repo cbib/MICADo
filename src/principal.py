@@ -45,11 +45,11 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 			sys.exit(0)
 		# Check non depassement valeur limite de k
 		logger.info("[Reference graph] Increasing k to %d to remove cycles", kmer_length)
-		return process_sample(kmer_length=kmer_length + 1, sample_key=sample_key, fastq_files=fastq_files, fasta_file=fasta_file,
-							  snp_file=snp_file,
-							  experiment_name=experiment_name, min_support_percentage=min_support_percentage, n_permutations=n_permutations,
-							  destination_directory=destination_directory, export_gml=export_gml, p_value_threshold=p_value_threshold,
-							  output_results=output_results, max_len=max_len)
+		return process_sample(kmer_length=kmer_length + 1, min_support_percentage=min_support_percentage, n_permutations=n_permutations,
+							p_value_threshold=p_value_threshold, max_len=max_len, sample_key=sample_key, fastq_files=fastq_files, 
+							fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name, 
+							destination_directory=destination_directory, export_gml=export_gml, output_results=output_results, 
+							disable_cycle_breaking=disable_cycle_breaking)
 
 	# g_patient construction
 	logger.info("Will build patient graph for %s with k==%d and minimum support = %dpct", fastq_files, kmer_length, min_support_percentage)
