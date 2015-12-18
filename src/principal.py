@@ -40,11 +40,11 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 
 	# Is there cycles in reference graph?
 	if list(nx.simple_cycles(g_reference.dbg)):
-		if kmer_length > 70:
+		if kmer_length >= 70:
 			logger.info("There are always cycle(s) with k==70...exiting")
 			sys.exit(0)
 		# Check non depassement valeur limite de k
-		logger.info("[Reference graph] Increasing k to %d to remove cycles", kmer_length)
+		logger.info("[Reference graph] Increasing k to %d to remove cycles", kmer_length+1)
 		return process_sample(kmer_length=kmer_length + 1, min_support_percentage=min_support_percentage, n_permutations=n_permutations,
 							p_value_threshold=p_value_threshold, max_len=max_len, sample_key=sample_key, fastq_files=fastq_files, 
 							fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name, 
@@ -61,16 +61,15 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 
 	# Is there cycles in patient graph?
 	if not disable_cycle_breaking and list(nx.simple_cycles(g_patient.dbgclean)):
-		if kmer_length > 70:
+		if kmer_length >= 70:
 			logger.info("There are still cycle(s) with k==70...exiting")
 			sys.exit(0)
 		# Check non depassement valeur limite de k
-		logger.info("[Sample graph] Increasing k to %d to remove cycles", kmer_length)
-		return process_sample(kmer_length=kmer_length + 1, sample_key=sample_key, fastq_files=",".join(fastq_files), fasta_file=fasta_file,
-							  snp_file=snp_file,
-							  experiment_name=experiment_name, min_support_percentage=min_support_percentage, n_permutations=n_permutations,
-							  destination_directory=destination_directory, export_gml=export_gml, p_value_threshold=p_value_threshold,
-							  output_results=output_results, max_len=max_len)
+		logger.info("[Sample graph] Increasing k to %d to remove cycles", kmer_length+1)
+		return process_sample(kmer_length=kmer_length + 1, min_support_percentage=min_support_percentage, n_permutations=n_permutations, 
+							 p_value_threshold=p_value_threshold, max_len=max_len, sample_key=sample_key, fastq_files=",".join(fastq_files), 
+							 fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name,
+							 destination_directory=destination_directory, export_gml=export_gml, output_results=output_results)
 
 	# Some prints for stats 
 	dir_stat = get_or_create_dir("output/statistics")
