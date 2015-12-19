@@ -103,11 +103,9 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 	g_patient.significant_alteration_list_init(p_value_threshold=p_value_threshold)
 
 	# Annotation
-	# if experiment_name == "TP53":
 	annotate_and_output_results(g_patient, g_reference, output_results)
 	# SNP
 	dir_stat = get_or_create_dir("output/snp")
-	# graph stat
 	graph_snp = open(dir_stat + "/snp_" + sample_key + ".tsv", 'w')
 	for snp_id in g_reference.snp.keys():
 		if g_reference.snp[snp_id][1] in g_patient.dbgclean:
