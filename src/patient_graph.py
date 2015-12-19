@@ -17,7 +17,6 @@ from sklearn.neighbors import NearestNeighbors
 from helpers.logger import init_logger
 from alteration import alteration as ALT
 
-# from alteration import alteration as ALT
 logger = init_logger("Patient graph")
 
 pattern = re.compile('.+\/(\w+)')
@@ -148,8 +147,6 @@ class PatientGraph:
 		in_degree_g_testclean_dict = self.dbgclean.in_degree()
 		out_degree_g_ref_dict = G_ref.out_degree()
 		in_degree_g_ref_dict = G_ref.in_degree()
-		start_g_ref = [key for key, v in G_ref.in_degree().items() if in_degree_g_ref_dict[key] == 0][0]  # only one in TP53
-		end_g_ref = [key for key, v in G_ref.out_degree().items() if out_degree_g_ref_dict[key] == 0][0]  # only one in TP53
 		end_tips_list = [key for key, v in self.dbgclean.out_degree().items() if
 						 out_degree_g_testclean_dict[key] == 0 and key not in G_ref and key in self.kmer_end_set]
 		start_tips_list = [key for key, v in self.dbgclean.in_degree().items() if
@@ -191,7 +188,6 @@ class PatientGraph:
 						logger.critical("Node %s anchored to %s", node_end, anchor)
 						node_end = anchor
 
-					# node_end=end_g_ref
 					reference_path_list = []
 					reference_path = ""
 					for i_path in nx.all_simple_paths(G_ref, node_start, node_end):
@@ -202,16 +198,13 @@ class PatientGraph:
 						logger.critical("Alternative path : %s", alternative_path)
 						continue
 
-					# if there is multiple references paths, check the largest read intersection or the smallest reference tags
-					# if no clear criteria for choice is found we keep the first reference path
+					# if there is multiple references paths, check the largest read intersection 
+					# if read intersection are equal, the reference path is the one with the smaller delta size accordind to the alternative path
 					if len(reference_path_list) > 1:
 						logger.debug("Trying to identify actual reference")
 						reference_path = reference_path_list[0]
 						size_biggest_intersection = len(list(set(alternative_path) & set(reference_path)))
 						logger.debug("Selected ref path num 0 with size %d", size_biggest_intersection)
-						# reference_path = None
-						# size_biggest_intersection = 0
-						# for i_reference_path in range(0, len(reference_path_list)):
 						for i_reference_path in range(1, len(reference_path_list)):
 							curr_reference_path = reference_path_list[i_reference_path]
 							size_intersection = len(list(set(alternative_path) & set(curr_reference_path)))
@@ -267,34 +260,8 @@ class PatientGraph:
 	def significant_alteration_list_init(self, p_value_threshold=0.001):
 		self.significant_alteration_list = []
 		for alteration in self.alteration_list:
-			# Pour avoir l'ensemble des paths dans signif alt list
 			if alteration.pvalue_ratio <= p_value_threshold:
-				# if alteration.pvalue_ratio <= 1:
 				self.significant_alteration_list.append(alteration)
-
-	def multiple_alternative_path_filter(self):
-		to_remove = []
-		node_dict = {"end": collections.defaultdict(list), "start": collections.defaultdict(list)}
-		for i_alteration in range(0, len(self.significant_alteration_list)):
-			node_start = self.significant_alteration_list[i_alteration].reference_path[0]
-			node_end = self.significant_alteration_list[i_alteration].reference_path[
-				len(self.significant_alteration_list[i_alteration].reference_path) - 1]
-			node_dict["start"][node_start].append(i_alteration)
-			node_dict["end"][node_end].append(i_alteration)
-		for extremity in node_dict.keys():
-			for node, liste_of_alterations in node_dict[extremity].items():
-				if len(node_dict[extremity][node]) > 1:
-					ratio_max = 0
-					for i_alteration in node_dict[extremity][node]:
-						if self.significant_alteration_list[i_alteration].ratio_read_count > ratio_max:
-							ratio_max = self.significant_alteration_list[i_alteration].ratio_read_count
-					for i_alteration in node_dict[extremity][node]:
-						if self.significant_alteration_list[i_alteration].ratio_read_count != ratio_max:
-							to_remove.append(self.significant_alteration_list[i_alteration])
-		logger.info("Will remove alterations  %s", [x.alternative_sequence for x in to_remove])
-		for alteration in set(to_remove):
-			self.significant_alteration_list.remove(alteration)
-
 
 def decompose_multiple_alterations(reference_path, alternative_path, kmer_length):
 	reference_sequence = ALT.kmerpathToSeq(reference_path, kmer_length)

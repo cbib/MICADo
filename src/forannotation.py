@@ -51,7 +51,7 @@ def merge_identical_alterations(annotated_alterations):
 	return one_alteration_per_cluster
 
 
-def alteration_list_to_transcrit_mutation(g_test, g_ref):
+def alteration_list_to_transcrit_mutation(g_test, reference_graph):
 	annotated_alterations = []
 	for i_alteration in range(0, len(g_test.significant_alteration_list)):
 		is_multi = False
@@ -71,29 +71,25 @@ def alteration_list_to_transcrit_mutation(g_test, g_ref):
 		# continue
 
 		alteration_type = compact_cigard[3]
-		# print g_ref.dbg.node[g_test.significant_alteration_list[i_alteration].reference_path[0]]['ref_list']
-		ref_path_list = g_ref.dbg.node[curr_alteration.reference_path[0]]['ref_list']
+		# print reference_graph.dbg.node[g_test.significant_alteration_list[i_alteration].reference_path[0]]['ref_list']
+		ref_path_list = reference_graph.dbg.node[curr_alteration.reference_path[0]]['ref_list']
 		if len(ref_path_list) == 1:
 			splicing_variant = ref_path_list.keys()[0]
-		elif "NM_000546.5" in ref_path_list:
-			splicing_variant = "NM_000546.5"
-		elif "NM_001126114.2" in ref_path_list:
-			splicing_variant = "NM_001126114.2"
-		elif "NM_001126113.2" in ref_path_list:
-			splicing_variant = "NM_001126113.2"
+		else:
+			splicing_variant = reference_graph.ref
 
 		position = ref_path_list[splicing_variant] + compact_cigard[0]
 		base_position = ref_path_list[splicing_variant]
 
 		if re.match("rs", splicing_variant):
 			reference_sequence = ""
-			# print g_ref.nt_ref[splicing_variant]
+			# print reference_graph.nt_ref[splicing_variant]
 			for i_pos in range(0, compact_cigard[2]):
-				if position + i_pos not in g_ref.nt_ref[splicing_variant]:
+				if position + i_pos not in reference_graph.nt_ref[splicing_variant]:
 					logger.critical("%d not in nt_ref dict of %s", position + i_pos, splicing_variant)
 					continue
-				reference_sequence += g_ref.nt_ref[splicing_variant][position + i_pos]
-			splicing_variant = "NM_000546.5"
+				reference_sequence += reference_graph.nt_ref[splicing_variant][position + i_pos]
+			splicing_variant = reference_graph.ref
 		else:
 			reference_sequence = ref_seq[compact_cigard[0]:compact_cigard[0] + compact_cigard[2]]
 
@@ -136,7 +132,6 @@ def alteration_list_to_transcrit_mutation(g_test, g_ref):
 	annotated_alterations = merge_identical_alterations(annotated_alterations)
 	for alt in annotated_alterations:
 		print_alteration(alt)
-
 	return annotated_alterations
 
 
@@ -190,9 +185,3 @@ def compute_cigar_string(alignments):
 	compact_cigard += [count, operation]
 	# print compact_cigard
 	return compact_cigard, uncompact_cigar
-
-
-def splicing_variant_converter(spv):
-	if spv not in ["NM_000546.5", "NM_001126114.2", "NM_001126113.2"]:
-		spv = "NM_000546.5"
-	return spv
