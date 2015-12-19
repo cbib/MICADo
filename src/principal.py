@@ -18,7 +18,6 @@ logger = init_logger('MICADo')
 ## imports
 logger.info("Will import")
 from reference_graph import ReferenceGraph as RG
-import visualization as VISU
 from patient_graph import PatientGraph as PG
 from randomreadsgraph import RandomReadsGraph as RRG
 
@@ -27,7 +26,7 @@ logger.info("Import finished")
 
 def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_threshold, max_len, sample_key=None, fastq_files=None,
 				   fasta_file=None, snp_file=None, experiment_name=None,
-				   destination_directory=".", export_gml=False, output_results=None, disable_cycle_breaking=False):
+				   destination_directory=".", output_results=None, disable_cycle_breaking=False):
 	if experiment_name == "TP53":
 		import seq_lib_TP53 as seq_lib_module
 	else:
@@ -48,11 +47,8 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 		return process_sample(kmer_length=kmer_length + 1, min_support_percentage=min_support_percentage, n_permutations=n_permutations,
 							p_value_threshold=p_value_threshold, max_len=max_len, sample_key=sample_key, fastq_files=fastq_files, 
 							fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name, 
-							destination_directory=destination_directory, export_gml=export_gml, output_results=output_results, 
+							destination_directory=destination_directory, output_results=output_results, 
 							disable_cycle_breaking=disable_cycle_breaking)
-
-	print g_reference.dbg.node["CTCCTCTTCATTGTCGTTTTAACCCTGCTG"]
-	print g_reference.dbg.node["CTCCTCTTCATTGTCGTTTTAACCCTGCTA"]
 
 	# g_patient construction
 	logger.info("Will build patient graph for %s with k==%d and minimum support = %dpct", fastq_files, kmer_length, min_support_percentage)
@@ -72,37 +68,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 		return process_sample(kmer_length=kmer_length + 1, min_support_percentage=min_support_percentage, n_permutations=n_permutations, 
 							 p_value_threshold=p_value_threshold, max_len=max_len, sample_key=sample_key, fastq_files=",".join(fastq_files), 
 							 fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name,
-							 destination_directory=destination_directory, export_gml=export_gml, output_results=output_results)
-
-	# Some prints for stats 
-	dir_stat = get_or_create_dir("output/statistics")
-	# graph stat
-	graph_stat_file = open(dir_stat + "/graph_stat_file" + sample_key + ".tsv", 'w')
-	graph_stat_file.write(
-		"%d\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n" % (
-			kmer_length,
-			g_reference.dbg.size(),
-			sample_key,
-			g_patient.coverage['total'],
-			g_patient.dbg.size(),
-			g_patient.dbgclean.size(),
-			g_patient.dbg.in_degree().values().count(0),
-			g_patient.dbg.out_degree().values().count(0),
-			g_patient.dbgclean.in_degree().values().count(0),
-			g_patient.dbgclean.out_degree().values().count(0)
-		))
-	# kmer stat
-	kmer_stat_file = open(dir_stat + "/kmer_stat_file" + sample_key + ".tsv", 'w')
-	for node_print in g_patient.dbg.nodes():
-		fragment_print = ",".join(g_patient.dbg.node[node_print]['fastq_id'])
-		reads_print = len(g_patient.dbg.node[node_print]['read_list_n'])
-		kmer_stat_file.write(
-			"%s\t%s\t%s\t%d\n" % (
-				sample_key,
-				node_print,
-				fragment_print,
-				reads_print,
-			))
+							 destination_directory=destination_directory, output_results=output_results)
 
 	# copy g_patient cleaned and remove reference edges on it (.dbg_refrm creation)
 	g_patient.graph_rmRefEdges_init(g_patient.dbgclean, g_reference.dbg)
@@ -135,56 +101,6 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 		g_patient.alteration_list[i].pvalue_init()
 
 	g_patient.significant_alteration_list_init(p_value_threshold=p_value_threshold)
-
-	# # If more than one significant alteration, check if they are not in "spike" (en épis)
-	# if len(g_patient.significant_alteration_list) > 1:
-	# 	g_patient.multiple_alternative_path_filter()
-
-	# Stat
-	# alteration stat
-	alt_stat_file = open(dir_stat + "/alt_stat_file" + sample_key + ".tsv", 'w')
-	for i in range(0, len(g_patient.alteration_list)):
-		if g_patient.alteration_list[i].pvalue_ratio <= 1:
-			alt_stat_file.write("%d\t%s\t%d\t%s\t%s\t%s\t%s\t%f\t%f\t%s\t%s\n" % (
-				i + 1,
-				sample_key,
-				g_patient.coverage['total'],
-				g_patient.alteration_list[i].reference_sequence,
-				g_patient.alteration_list[i].alternative_sequence,
-				g_patient.alteration_list[i].reference_read_count,
-				g_patient.alteration_list[i].alternative_read_count,
-				g_patient.alteration_list[i].ratio_read_count,
-				g_patient.alteration_list[i].pvalue_ratio,
-				str(g_patient.alteration_list[i].zscore),
-				"\t".join(map(str, g_patient.alteration_list[i].random_ratio_list))
-			))
-
-	# For visualisation
-	graph_name = "G_%s_" % sample_key
-	merged_graph_name = "G_%s_merged_" % sample_key
-	cleaned_graph_name = graph_name + "clean%d_" % min_support_percentage
-	merged_cleaned_graph_name = graph_name + "clean%d_merged_" % min_support_percentage
-	if export_gml:
-		logger.info("Will save viz graph for %s with k==%d", sample_key, kmer_length)
-		get_or_create_dir(destination_directory)
-		# for the refrence graph
-		g_reference_merge = VISU.merge_reference_graph(g_reference.dbg.copy())
-		g_reference_visu = VISU.reference_graph_visualization_formatting(g_reference.dbg.copy())
-		g_reference_merge_visu = VISU.reference_graph_merged_visualization_formatting(g_reference_merge.copy())
-		nx.write_gml(g_reference_visu, destination_directory + "/g_reference_visu" + str(kmer_length) + ".gml")
-		nx.write_gml(g_reference_merge_visu, destination_directory + "/g_reference_merge_visu" + str(kmer_length) + ".gml")
-		# for the patient graph
-		g_patient_visu = VISU.individu_graph_visualization_formating(g_patient.dbg.copy(), g_reference.dbg.copy())
-		g_patient_clean_visu = VISU.individu_graph_visualization_formating(g_patient.dbgclean.copy(), g_reference.dbg.copy())
-		g_patient_merged = VISU.merge_individu_graph(g_patient.dbg.copy(), g_reference.dbg.copy())
-		g_patient_merged_visu = VISU.individu_graph_merged_visualization_formating(g_patient_merged.copy(), g_reference.dbg.copy())
-		g_patient_clean_merged = VISU.merge_individu_graph(g_patient.dbgclean.copy(), g_reference.dbg.copy())
-		g_patient_clean_merged_visu = VISU.individu_graph_merged_visualization_formating(g_patient_clean_merged.copy(),
-																						 g_reference.dbg.copy())
-		nx.write_gml(g_patient_visu, destination_directory + "/" + graph_name + str(kmer_length) + ".gml")
-		nx.write_gml(g_patient_clean_visu, destination_directory + "/" + cleaned_graph_name + str(kmer_length) + ".gml")
-		nx.write_gml(g_patient_merged_visu, destination_directory + "/" + merged_graph_name + str(kmer_length) + ".gml")
-		nx.write_gml(g_patient_clean_merged_visu, destination_directory + "/" + merged_cleaned_graph_name + str(kmer_length) + ".gml")
 
 	# Annotation
 	# if experiment_name == "TP53":
@@ -257,7 +173,6 @@ if __name__ == "__main__":
 	parser.add_argument('--npermutations', help="number of permutations / random samples to perform", default=1000, type=int,
 						required=False)
 	parser.add_argument("--destdir", help="Output directory", default="output/gml", type=str, required=False)
-	parser.add_argument("--export", help="Whether to export graphs to GML", action='store_true')
 	parser.add_argument("--max_len", help="Maximum allowed indel length", default=250, type=int)
 	parser.add_argument("--pvalue", help="P value threshold for significance", type=float, default=0.001)
 	parser.add_argument("--results", help="Output (as JSON) results file  ", type=str, default=None)
@@ -275,7 +190,6 @@ if __name__ == "__main__":
 		n_permutations=args.npermutations,
 		sample_key=args.samplekey,
 		destination_directory=args.destdir,
-		export_gml=args.export,
 		p_value_threshold=args.pvalue,
 		output_results=args.results,
 		max_len=args.max_len,
