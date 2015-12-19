@@ -58,8 +58,6 @@ class ReferenceGraph:
 				next_kmer = kmer_around_snp[(i2 + 1):(i2 + 1 + k)]
 				if next_kmer not in self.dbg:
 					self.dbg.add_node(next_kmer, ref_list={line_before_split[0]: start_position + i2})
-				# elif line_before_split[0] not in self.dbg.node[next_kmer]['ref_list']:
-				# 	self.dbg.node[next_kmer]['ref_list'][line_before_split[0]] = start_position+i2
 				if curr_kmer in self.dbg:
 					if self.dbg[curr_kmer].get(next_kmer, 0) == 0:
 						self.dbg.add_edge(curr_kmer, next_kmer)
