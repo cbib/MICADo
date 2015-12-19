@@ -39,14 +39,14 @@ class ReferenceGraph:
 		IN_SNP = open(snp_file, 'r')
 		lines = IN_SNP.readlines()
 		lines = map(str.strip, lines)
-		for l in range(1, len(lines), +2):
-			line_split = lines[l].split("\t")
-			line_before_split = lines[l - 1].split("\t")
+		for l_i in range(1, len(lines), +2):
+			line_split = lines[l_i].split("\t")
+			line_before_split = lines[l_i-1].split("\t")
 			left = line_split[0]
 			left_len = len(left)
-			start_position = int(line_before_split[1]) + left_len - k + 1
+			start_position = int(line_before_split[1]) + left_len - k 
 			snp_code = line_split[1]
-			right = line_split[2]
+			right = line_split[2] 
 			reference_base = snp_code.split("|")[0]
 			kmer_around_ref = left[left_len - k:left_len] + reference_base + right[0:k]
 			snp_base = snp_code.split("|")[1]

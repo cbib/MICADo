@@ -51,6 +51,9 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 							destination_directory=destination_directory, export_gml=export_gml, output_results=output_results, 
 							disable_cycle_breaking=disable_cycle_breaking)
 
+	print g_reference.dbg.node["CTCCTCTTCATTGTCGTTTTAACCCTGCTG"]
+	print g_reference.dbg.node["CTCCTCTTCATTGTCGTTTTAACCCTGCTA"]
+
 	# g_patient construction
 	logger.info("Will build patient graph for %s with k==%d and minimum support = %dpct", fastq_files, kmer_length, min_support_percentage)
 	fastq_files = fastq_files.split(",")
