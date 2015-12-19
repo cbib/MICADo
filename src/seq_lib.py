@@ -15,10 +15,6 @@ from helpers.logger import init_logger
 logger = init_logger('SEQLIB')
 logger.info("Setting up SEQLIB")
 
-# TO CHANGE !!!!!
-experiment_name = "FLT3"
-
-
 def build_read_library(FASTQFILE_PATH):
 	read_library = collections.defaultdict(list)
 	FASTQFILE_ALL = os.listdir(FASTQFILE_PATH)
@@ -52,11 +48,7 @@ def build_serialize_library(FASTQFILE_PATH):
 	logger.info("Serialized to file %s" % tgt_file)
 
 
-# def library_itit(experiment_name):
-FASTQFILE_PATH = "data/fastq/" + experiment_name
-if 'rebuild_library' in sys.argv:
-	build_serialize_library(FASTQFILE_PATH)
-else:
+def library_itit(experiment_name):
 	avail_files = {x: x.split("_") for x in glob.glob("data/seq/" + experiment_name + "_*_*.packb")}.items()
 	if len(avail_files) < 1:
 		logger.info("Force rebuilding")
@@ -70,7 +62,7 @@ else:
 		read_library = msgpack.unpack(f)
 	# un_packed_idx = [(ObjectId(x[0]), x[1]) for x in un_packed_idx]
 	logger.info("De-Serialized %d read lib" % (len(read_library)))
-
+	global read_library
 
 # Sampling fonction from a coverage dict (with keys 'N' et 'C')
 def sampling(coverage):

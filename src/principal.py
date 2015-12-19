@@ -27,10 +27,8 @@ logger.info("Import finished")
 def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_threshold, max_len, sample_key=None, fastq_files=None,
 				   fasta_file=None, snp_file=None, experiment_name=None,
 				   destination_directory=".", output_results=None, disable_cycle_breaking=False):
-	if experiment_name == "TP53":
-		import seq_lib_TP53 as seq_lib_module
-	else:
-		import seq_lib as seq_lib_module
+	import seq_lib as seq_lib_module
+	seq_lib_module.library_itit(experiment_name)
 
 
 	# g_reference construction

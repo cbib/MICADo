@@ -7,13 +7,14 @@ import networkx as nx
 
 class ReferenceGraph:
 	def __init__(self, kmer_length, fasta_file, snp_file):
+		self.ref = None
 		self.dbg = nx.DiGraph()
 		self.nt_ref = {}
 		self.snp = {}
 		self.kmer_length = kmer_length
 		# Reference
 		for record in SeqIO.parse(fasta_file, "fasta", generic_dna):
-			if not self.ref :
+			if self.ref == None :
 				self.ref = record.id
 			try:
 				startposition = int(record.description.split("\t")[1]) + 1
