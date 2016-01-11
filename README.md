@@ -55,7 +55,7 @@ python src/principal.py
 
 # LICENSE
 
-    Copyright (c) 2015 Justine Rudewicz (1) (justinerudewicz@hotmail.fr) 
+    Copyright (c) 2015 Justine Rudewicz (1) (justinerudewicz@gmail.com) 
                 Hayssam Soueidan (1) (massyah@gmail.com)
                 Richard Iggo (2) (R.Iggo@bordeaux.unicancer.fr)
                 Macha Nikolski (1,3) (macha@labri.fr)

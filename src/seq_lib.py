@@ -28,12 +28,10 @@ def build_read_library(FASTQFILE_PATH):
 		lines = map(str.strip, lines)
 		for i_line in range(1, len(lines), 4):
 			read_library[a_fastq_file].append(lines[i_line])
-	# mutate everything back to lists
-	# read_library[a_fastq_file]={k:list(v) for k,v in read_library.items()}
 	return read_library
 
 
-def build_serialize_library(FASTQFILE_PATH):
+def build_serialize_library(experiment_name,FASTQFILE_PATH):
 	logger.info("will rebuild library")
 	read_library = build_read_library(FASTQFILE_PATH)
 	logger.info("Will save %d items", len(read_library))
@@ -49,10 +47,12 @@ def build_serialize_library(FASTQFILE_PATH):
 
 
 def library_itit(experiment_name):
+	global read_library
 	avail_files = {x: x.split("_") for x in glob.glob("data/seq/" + experiment_name + "_*_*.packb")}.items()
+	FASTQFILE_PATH = "data/fastq/"+experiment_name
 	if len(avail_files) < 1:
 		logger.info("Force rebuilding")
-		build_serialize_library(FASTQFILE_PATH)
+		build_serialize_library(experiment_name,FASTQFILE_PATH)
 		avail_files = {x: x.split("_") for x in glob.glob("data/seq/" + experiment_name + "_*_*.packb")}.items()
 	avail_files.sort(key=lambda x: float(x[1][1]), reverse=True)
 	most_recent = avail_files[0][0]
@@ -62,9 +62,8 @@ def library_itit(experiment_name):
 		read_library = msgpack.unpack(f)
 	# un_packed_idx = [(ObjectId(x[0]), x[1]) for x in un_packed_idx]
 	logger.info("De-Serialized %d read lib" % (len(read_library)))
-	global read_library
 
-# Sampling fonction from a coverage dict (with keys 'N' et 'C')
+# Sampling fonction from a coverage dict 
 def sampling(coverage):
 	coverage = 1000
 	read_sampling = []

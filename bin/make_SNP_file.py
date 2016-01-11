@@ -5,7 +5,7 @@
 # logger = logging.getLogger('mix')
 
 # This script is used to construct snp list for MICADo 
-# Example for the FLT3 transcript: python SNPfile_makor.py NM_004119.2.fasta refseq_22221.txt snp_FLT3.tab  NM_004119 200
+# Example for the FLT3 transcript: python SNPfile_makor.py NM_004119.2.fasta refseq_22221.txt snp_FLT3.tab NM_004119 200
 
 import os
 import sys

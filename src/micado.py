@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=utf8
 
-# python src/micado.py --samplekey 83_1 --fastq /Users/rudewicz/didac/DiDaC/data/fastq/all_pool_trimmed0.1/C_83_1.fastq,/Users/rudewicz/didac/DiDaC/data/fastq/all_pool_trimmed0.1/N_83_1.fastq --fasta /Users/rudewicz/didac/MICADo/data/reference/reference_TP53.fasta --snp /Users/rudewicz/didac/MICADo/data/reference/snp_TP53.tab  --kmer_length 20 --npermutations 100 --experiment TP53
+# python src/micado.py --samplekey 83_1 --fastq C_83_1.fastq --fasta .fasta --snp MICADo/data/reference/snp_TP53.tab  --kmer_length 20 --npermutations 100 --experiment TP53
 import json
 from Bio import pairwise2
 
@@ -18,7 +18,7 @@ logger = init_logger('MICADo')
 ## imports
 logger.info("Will import")
 from reference_graph import ReferenceGraph as RG
-from patient_graph import SampleGraph as PG
+from patient_graph import SampleGraph as SG
 from randomreadsgraph import RandomReadsGraph as RRG
 
 logger.info("Import finished")
@@ -51,7 +51,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 	# g_sample construction
 	logger.info("Will build patient graph for %s with k==%d and minimum support = %dpct", fastq_files, kmer_length, min_support_percentage)
 	fastq_files = fastq_files.split(",")
-	g_sample = PG(fastq_files, kmer_length)
+	g_sample = SG(fastq_files, kmer_length)
 
 	logger.info("Before cleaning: %d nodes", len(g_sample.dbg))
 	g_sample.graph_cleaned_init(min_support_percentage)
@@ -65,9 +65,10 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 		# Check non depassement valeur limite de k
 		logger.info("[Sample graph] Increasing k to %d to remove cycles", kmer_length+1)
 		return process_sample(kmer_length=kmer_length + 1, min_support_percentage=min_support_percentage, n_permutations=n_permutations, 
-							 p_value_threshold=p_value_threshold, max_len=max_len, sample_key=sample_key, fastq_files=",".join(fastq_files), 
-							 fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name,
-							 destination_directory=destination_directory, output_results=output_results)
+							p_value_threshold=p_value_threshold, max_len=max_len, sample_key=sample_key, fastq_files=",".join(fastq_files), 
+							fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name,
+							destination_directory=destination_directory, output_results=output_results, 
+							disable_cycle_breaking=disable_cycle_breaking)
 
 	# Some prints for stats 
 	dir_stat = get_or_create_dir("output/statistics")
@@ -98,7 +99,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 				fragment_print,
 				reads_print,
 			))
-	# copy g_patient cleaned and remove reference edges on it (.dbg_refrm creation)
+	# copy g_sample cleaned and remove reference edges on it (.dbg_refrm creation)
 	g_sample.graph_remove_reference_edges(g_sample.dbgclean, g_reference.dbg)
 
 	# search for alternative paths in dbg_refrm (.alteration_list creation)
@@ -131,7 +132,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 	g_sample.significant_alteration_list_init(p_value_threshold=p_value_threshold)
 
 	# Annotation
-	annotate_and_output_results(g_patient, g_reference, output_results)
+	annotate_and_output_results(g_sample, g_reference, output_results)
 	# SNP
 	dir_stat = get_or_create_dir("output/snp")
 	graph_snp = open(dir_stat + "/snp_" + sample_key + ".tsv", 'w')
@@ -146,9 +147,9 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 					"%s\t%s\t0\t%d\n" % (sample_key, snp_id, len(g_sample.dbg.node[g_reference.snp[snp_id][1]]['read_list_n'])))
 
 
-def annotate_and_output_results(g_patient, g_reference, output_results):
+def annotate_and_output_results(g_sample, g_reference, output_results):
 	import forannotation as ANNO
-	annotated_alterations = ANNO.alteration_list_to_transcrit_mutation(g_patient, g_reference)
+	annotated_alterations = ANNO.alteration_list_to_transcrit_mutation(g_sample, g_reference)
 	# add experiment arguments
 	PROGRAMEND = time.time()
 	experiment_description = {}
@@ -156,18 +157,18 @@ def annotate_and_output_results(g_patient, g_reference, output_results):
 	experiment_description['timestamp'] = this_timestamp
 	experiment_description['exec_time'] = PROGRAMEND - PROGRAMSTART
 	experiment_description['parameters'] = vars(args)
-	experiment_description['n_reads'] = g_patient.n_reads
+	experiment_description['n_reads'] = g_sample.n_reads
 	experiment_description['git_revision_hash'] = get_git_revision_hash()
 	# experiment_description['memory_usage'] = process.memory_info().rss
 
 	experiment_description['significant_alterations'] = annotated_alterations
 	experiment_description['graphs'] = {
-		"coverage_total": g_patient.coverage['total'],
-		"before_cleaning": len(g_patient.dbg),
-		"after_clearning": len(g_patient.dbgclean)
+		"coverage_total": g_sample.coverage['total'],
+		"before_cleaning": len(g_sample.dbg),
+		"after_clearning": len(g_sample.dbgclean)
 	}
 	experiment_description['all_alterations'] = []
-	for x in g_patient.alteration_list:
+	for x in g_sample.alteration_list:
 		alteration_description = x.__dict__
 		del alteration_description['reference_path']
 		del alteration_description['alternative_path']
