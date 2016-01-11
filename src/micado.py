@@ -101,8 +101,8 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 	# Annotation
 	annotate_and_output_results(g_sample, g_reference, output_results)
 	# SNP
-	dir_stat = get_or_create_dir("output/snp")
-	graph_snp = open(dir_stat + "/snp_" + sample_key + ".tsv", 'w')
+	dir_snp = get_or_create_dir("output/snp")
+	graph_snp = open(dir_snp + "/snp_" + sample_key + ".tsv", 'w')
 	for snp_id in g_reference.snp.keys():
 		if g_reference.snp[snp_id][1] in g_sample.dbgclean:
 			if g_reference.snp[snp_id][0] in g_sample.dbgclean:
@@ -147,7 +147,8 @@ def annotate_and_output_results(g_sample, g_reference, output_results):
 		experiment_description['all_alterations'].append(alteration_description)
 	# print json.dumps(experiment_description)
 	if output_results:
-		with open(output_results, "w") as f:
+		dir_json = get_or_create_dir("output/json")
+		with open(dir_json+"/"+output_results, "w") as f:
 			json.dump(experiment_description, f)
 
 
