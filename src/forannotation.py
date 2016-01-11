@@ -73,10 +73,10 @@ def alteration_list_to_transcrit_mutation(g_test, reference_graph):
 		alteration_type = compact_cigard[3]
 		# print reference_graph.dbg.node[g_test.significant_alteration_list[i_alteration].reference_path[0]]['ref_list']
 		ref_path_list = reference_graph.dbg.node[curr_alteration.reference_path[0]]['ref_list']
-		if len(ref_path_list) == 1:
-			splicing_variant = ref_path_list.keys()[0]
-		else:
+		if reference_graph.ref in ref_path_list:
 			splicing_variant = reference_graph.ref
+		else:
+			splicing_variant = ref_path_list.keys()[0]
 
 		position = ref_path_list[splicing_variant] + compact_cigard[0]
 		base_position = ref_path_list[splicing_variant]

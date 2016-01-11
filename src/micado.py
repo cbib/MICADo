@@ -36,6 +36,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 	logger.info("Will build reference graph with k==%d and fasta=%s & snp=%s", kmer_length, fasta_file, snp_file)
 	g_reference = RG(kmer_length, fasta_file, snp_file)
 
+
 	# Is there cycles in reference graph?
 	if list(nx.simple_cycles(g_reference.dbg)):
 		if kmer_length >= MAX_K:

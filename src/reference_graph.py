@@ -14,6 +14,8 @@ class ReferenceGraph:
 		self.kmer_length = kmer_length
 		# Reference
 		for record in SeqIO.parse(fasta_file, "fasta", generic_dna):
+			if self.ref == None :
+				self.ref = record.id
 			startposition = 0
 			seq_s = str(record.seq)
 			for i2 in range(0, len(seq_s) - kmer_length):
@@ -54,7 +56,7 @@ class ReferenceGraph:
 				curr_kmer = kmer_around_snp[i2:(i2 + k)]
 				next_kmer = kmer_around_snp[(i2 + 1):(i2 + 1 + k)]
 				if next_kmer not in self.dbg:
-					self.dbg.add_node(next_kmer, ref_list={line_before_split[0]: start_position + i2})
+					self.dbg.add_node(next_kmer, ref_list={line_before_split[0]: start_position + i2 + 1})
 				if curr_kmer in self.dbg:
 					if self.dbg[curr_kmer].get(next_kmer, 0) == 0:
 						self.dbg.add_edge(curr_kmer, next_kmer)
