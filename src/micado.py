@@ -18,7 +18,7 @@ logger = init_logger('MICADo')
 ## imports
 logger.info("Will import")
 from reference_graph import ReferenceGraph as RG
-from patient_graph import SampleGraph as SG
+from sample_graph import SampleGraph as SG
 from randomreadsgraph import RandomReadsGraph as RRG
 
 logger.info("Import finished")
