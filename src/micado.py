@@ -26,8 +26,7 @@ logger.info("Import finished")
 MAX_K = 70
 
 def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_threshold, max_len, sample_key=None, fastq_files=None,
-				   fasta_file=None, snp_file=None, experiment_name=None,
-				   destination_directory=".", output_results=None, disable_cycle_breaking=False):
+				   fasta_file=None, snp_file=None, experiment_name=None, output_results=None, disable_cycle_breaking=False):
 
 	import seq_lib as seq_lib_module
 	seq_lib_module.library_itit(experiment_name)
@@ -36,19 +35,17 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 	logger.info("Will build reference graph with k==%d and fasta=%s & snp=%s", kmer_length, fasta_file, snp_file)
 	g_reference = RG(kmer_length, fasta_file, snp_file)
 
-
 	# Is there cycles in reference graph?
 	if list(nx.simple_cycles(g_reference.dbg)):
 		if kmer_length >= MAX_K:
 			logger.info("There are always cycle(s) withk==%d...exiting", MAX_K)
 			sys.exit(0)
-		# Check non depassement valeur limite de k
+		# Check k threshold
 		logger.info("[Reference graph] Increasing k to %d to remove cycles", kmer_length+1)
 		return process_sample(kmer_length=kmer_length + 1, min_support_percentage=min_support_percentage, n_permutations=n_permutations,
 							p_value_threshold=p_value_threshold, max_len=max_len, sample_key=sample_key, fastq_files=fastq_files, 
 							fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name, 
-							destination_directory=destination_directory, output_results=output_results, 
-							disable_cycle_breaking=disable_cycle_breaking)
+							output_results=output_results, disable_cycle_breaking=disable_cycle_breaking)
 	# g_sample construction
 	logger.info("Will build patient graph for %s with k==%d and minimum support = %dpct", fastq_files, kmer_length, min_support_percentage)
 	fastq_files = fastq_files.split(",")
@@ -58,48 +55,17 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 	g_sample.graph_cleaned_init(min_support_percentage)
 	logger.info("After cleaning: %d nodes", len(g_sample.dbgclean))
 
-	# Is there cycles in patient graph?
+	# Is there cycles in the cleaned patient graph?
 	if not disable_cycle_breaking and list(nx.simple_cycles(g_sample.dbgclean)):
-		if kmer_length > MAX_K:
+		if kmer_length >= MAX_K:
 			logger.info("There are still cycle(s) with k==%d...exiting", MAX_K)
 			sys.exit(0)
-		# Check non depassement valeur limite de k
 		logger.info("[Sample graph] Increasing k to %d to remove cycles", kmer_length+1)
 		return process_sample(kmer_length=kmer_length + 1, min_support_percentage=min_support_percentage, n_permutations=n_permutations, 
 							p_value_threshold=p_value_threshold, max_len=max_len, sample_key=sample_key, fastq_files=",".join(fastq_files), 
 							fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name,
-							destination_directory=destination_directory, output_results=output_results, 
-							disable_cycle_breaking=disable_cycle_breaking)
+							output_results=output_results, disable_cycle_breaking=disable_cycle_breaking)
 
-	# Some prints for stats 
-	dir_stat = get_or_create_dir("output/statistics")
-	# graph stat
-	graph_stat_file = open(dir_stat + "/graph_stat_file" + sample_key + ".tsv", 'w')
-	graph_stat_file.write(
-		"%d\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n" % (
-			kmer_length,
-			g_reference.dbg.size(),
-			sample_key,
-			g_sample.coverage['total'],
-			g_sample.dbg.size(),
-			g_sample.dbgclean.size(),
-			g_sample.dbg.in_degree().values().count(0),
-			g_sample.dbg.out_degree().values().count(0),
-			g_sample.dbgclean.in_degree().values().count(0),
-			g_sample.dbgclean.out_degree().values().count(0)
-		))
-	# kmer stat
-	kmer_stat_file = open(dir_stat + "/kmer_stat_file" + sample_key + ".tsv", 'w')
-	for node_print in g_sample.dbg.nodes():
-		fragment_print = ",".join(g_sample.dbg.node[node_print]['fastq_id'])
-		reads_print = len(g_sample.dbg.node[node_print]['read_list_n'])
-		kmer_stat_file.write(
-			"%s\t%s\t%s\t%d\n" % (
-				sample_key,
-				node_print,
-				fragment_print,
-				reads_print,
-			))
 	# copy g_sample cleaned and remove reference edges on it (.dbg_refrm creation)
 	g_sample.graph_remove_reference_edges(g_sample.dbgclean, g_reference.dbg)
 
@@ -200,7 +166,6 @@ if __name__ == "__main__":
 	parser.add_argument('--samplekey', help='Unique sample key', default="", type=str, required=True)
 	parser.add_argument('--npermutations', help="number of permutations / random samples to perform", default=1000, type=int,
 						required=False)
-	parser.add_argument("--destdir", help="Output directory", default="output/gml", type=str, required=False)
 	parser.add_argument("--max_len", help="Maximum allowed indel length", default=250, type=int)
 	parser.add_argument("--pvalue", help="P value threshold for significance", type=float, default=0.001)
 	parser.add_argument("--results", help="Output (as JSON) results file  ", type=str, default=None)
@@ -220,7 +185,6 @@ if __name__ == "__main__":
 		experiment_name=args.experiment,
 		n_permutations=args.npermutations,
 		sample_key=args.samplekey,
-		destination_directory=args.destdir,
 		p_value_threshold=args.pvalue,
 		output_results=args.results,
 		max_len=args.max_len,
