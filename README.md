@@ -9,7 +9,7 @@ MICADo is a tool to perform variant calling on targeted (third) next-generation 
 # Getting help
 
 For any information or help running MICADo, you can get in touch with: 
-* [Justine Rudewicz](mailto:justinerudewicz[AT]hotmail.fr)
+* [Justine Rudewicz](mailto:justinerudewicz[AT]gmail.com)
 * [Hayssam Soueidan](mailto:massyah[AT]gmail.com)
 * [Macha Nikolski](mailto:macha[AT]labri.fr)
 
