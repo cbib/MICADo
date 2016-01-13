@@ -228,10 +228,18 @@ class PatientGraph:
 					else:
 						reference_path = reference_path_list[0]
 					# Read intersection of all nodes in the reference path for g_patient 
+					condition = 0
 					read_set_pathRef_G_sample = []
 					for node in reference_path:
+						if node not in self.dbg:
+							condition = 1
+							logger.critical("Identified node %s absent from the input DBG", node)
+							intersect_allnodes_pathRef_G_sample = "0"  # Weird smoothing, TODO check with justine if required
+							# intersect_allnodes_pathRef_G_sample = []
+							break
 						read_set_pathRef_G_sample.append(set(self.dbg.node[node]['read_list_n']))
-					intersect_allnodes_pathRef_G_sample = set.intersection(*read_set_pathRef_G_sample)
+					if condition == 0:
+						intersect_allnodes_pathRef_G_sample = set.intersection(*read_set_pathRef_G_sample)
 					if abs(len(reference_path) - len(alternative_path)) > max_len:
 						logger.critical("Disregarding large alteration %s vs %s", reference_path, alternative_path)
 						continue
