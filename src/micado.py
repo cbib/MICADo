@@ -147,8 +147,7 @@ def annotate_and_output_results(g_sample, g_reference, output_results):
 		experiment_description['all_alterations'].append(alteration_description)
 	# print json.dumps(experiment_description)
 	if output_results:
-		dir_json = get_or_create_dir("output/json")
-		with open(dir_json+"/"+output_results, "w") as f:
+		with open(output_results, "w") as f:
 			json.dump(experiment_description, f)
 
 
