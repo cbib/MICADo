@@ -33,7 +33,7 @@ def build_read_library(FASTQFILE_PATH):
 	return read_library
 
 
-def build_serialize_library(FASTQFILE_PATH):
+def build_serialize_library(experiment_name,FASTQFILE_PATH):
 	logger.info("will rebuild library")
 	read_library = build_read_library(FASTQFILE_PATH)
 	logger.info("Will save %d items", len(read_library))
@@ -50,9 +50,10 @@ def build_serialize_library(FASTQFILE_PATH):
 
 def library_itit(experiment_name):
 	avail_files = {x: x.split("_") for x in glob.glob("data/seq/" + experiment_name + "_*_*.packb")}.items()
+	FASTQFILE_PATH = "data/fastq/"+experiment_name
 	if len(avail_files) < 1:
 		logger.info("Force rebuilding")
-		build_serialize_library(FASTQFILE_PATH)
+		build_serialize_library(experiment_name,FASTQFILE_PATH)
 		avail_files = {x: x.split("_") for x in glob.glob("data/seq/" + experiment_name + "_*_*.packb")}.items()
 	avail_files.sort(key=lambda x: float(x[1][1]), reverse=True)
 	most_recent = avail_files[0][0]
