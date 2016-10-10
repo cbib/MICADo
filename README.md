@@ -45,8 +45,6 @@ MICADo runs in a command line environment. The package contains one main script 
 /!\ Reads in fastq files must be oriented in accord to the reference fasta file.
 You can do it with /bin/orient_reads_in_forward_direction.py or the cutadapt tool (http://cutadapt.readthedocs.io/en/stable/index.html) 
 
-/!\ Use http://www.snp-nexus.org/ to generate a refseq TXT file for SNPs and the /bin/make_SNP_file.py to construct the final TSV file.
-
 ## Minimal command line example 
 
 /!\ Make sure to copy the whole cohort fastq files in the folder data/fastq/<experiment_name>/
