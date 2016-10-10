@@ -47,11 +47,11 @@ MICADo runs in a command line environment. The package contains one main script 
 /!\ Make sure to copy the whole cohort fastq files in the folder data/fastq/<experiment_name>/
 
 ```{bash}
-python src/MICADo.py 
-	--samplekey sample1  # Sample label for the results 
-	--fastq data/fastq/exp1/sample1.fastq  # Sample fastq file (with all the path)
-	--experiment exp1 # Experiment label corresponding to the folder name containing fastq files of the whole cohort 
-	--fasta data/reference/reference.fasta  # Reference sequence in fasta format 
+python src/MICADo.py
+	--samplekey <sample_name>  									# Sample label for the results
+	--fastq data/fastq/<experiment_name>/<sample_name.fastq>  	# Sample fastq file (with all the path)
+	--experiment <experiment_name> 								# Experiment label corresponding to the folder name containing fastq files of the whole cohort 
+	--fasta data/reference/<reference.fasta> 					# Reference sequence in fasta format 
 	[options]
 ```
 
