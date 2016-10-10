@@ -75,7 +75,7 @@ Note that k-mer length increases automatically to obtain a DAG (Directed Acyclic
 
 ## SNP input example
 
-Use http://www.snp-nexus.org/ to generate a refseq TXT file for known SNPs containing SNP position on reference gene/transcript.
+Use http://www.snp-nexus.org/ to generate a refseq TXT file for known SNPs containing SNP description on reference transcript.
 
 Then use /bin/make_SNP_file.py to construct the final TSV file (example for the NM_004119 transcript of FLT3 gene):
 
