@@ -88,6 +88,8 @@ python /bin/make_SNP_file.py
 	100							# Number of nucleotides before and after SNP
 ```
 
+See /data/reference/snp_FLT3.tab for the final format.
+
 ## Outputs
 
 ### Usual results
@@ -96,11 +98,11 @@ Usually, results and log are displayed in the terminal.
 You can also write results and log in separate tsv/log files with:
 
 ```{bash}
-python src/MICADo.py \
-	--samplekey <sample_name> \
-	--fastq data/fastq/<experiment_name>/<sample_name.fastq> \
-	--experiment <experiment_name> \
-	--fasta data/reference/<reference.fasta> \
+python src/MICADo.py 
+	--samplekey <sample_name> 
+	--fastq data/fastq/<experiment_name>/<sample_name.fastq> 
+	--experiment <experiment_name> 
+	--fasta data/reference/<reference.fasta> 
 	> <sample_name>.tsv 2> <sample_name>.log
 ```
 
