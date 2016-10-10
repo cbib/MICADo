@@ -43,11 +43,11 @@ MICADo runs in a command line environment. The package contains one main script 
 * (Optionnal) A TSV file describing known SNPs.
 
 /!\ Reads in fastq files must be oriented in accord to the reference fasta file.
-You can do it with /bin/orient_reads_in_forward_direction.py or the cutadapt tool (http://cutadapt.readthedocs.io/en/stable/index.html) 
+You can do it with /bin/orient_reads_in_forward_direction.py or with the cutadapt tool (http://cutadapt.readthedocs.io/en/stable/index.html).
 
 ## Minimal command line example 
 
-/!\ Make sure to copy the whole cohort fastq files in the folder data/fastq/<experiment_name>/
+/!\ Make sure to copy the whole cohort fastq files in the folder data/fastq/
 
 ```{bash}
 python src/MICADo.py
@@ -71,7 +71,22 @@ python src/MICADo.py
 	--disable_cycle_breaking	Do not search for k-mer values yielding a DAG
 ```
 
-Note that k-mer length increases automatically to obtain a DAG (stop at k >= 70). Use the --disable_cycle_breaking to allow cycle(s). In this case, this part of the graph is not analysed.
+Note that k-mer length increases automatically to obtain a DAG (Directed Acyclic Graph) (stop at k >= 70). Use the --disable_cycle_breaking to allow cycle(s). In this case, this part of the graph is not analysed.
+
+## SNP input example
+
+Use http://www.snp-nexus.org/ to generate a refseq TXT file for known SNPs containing SNP position on reference gene/transcript.
+
+Then use /bin/make_SNP_file.py to construct the final TSV file (example for the NM_004119 transcript of FLT3 gene):
+
+```{bash}
+python /bin/make_SNP_file.py 
+	NM_004119.2.fasta 			# Corresponding fasta file
+	refseq_22221.txt 			# Refseq file obtain from snp-nexus
+	snp_FLT3.tab  				# File name generated from make_SNP_file.py
+	NM_004119 					# Corresponding transcript
+	100							# Number of nucleotides before and after SNP
+```
 
 ## Outputs
 
@@ -92,8 +107,6 @@ python src/MICADo.py \
 ### SNP output
 
 If you specified a SNP file, a TSV file will be created (and the direction /output/SNP/) with, for each SNP, the following informations: sample key, SNP ID, the number of reads supporting the reference nucleotide and the number of reads supporting SNP.
-
-/!\ Use http://www.snp-nexus.org/ to generate a refseq TXT file for known SNPs and the /bin/make_SNP_file.py to construct the final TSV file.
 
 ### Additional JSON file (optional)
 
