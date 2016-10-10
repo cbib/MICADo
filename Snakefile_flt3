@@ -4,7 +4,7 @@ rule process_sample:
 	log: "output/logs/{SAMPLE}.txt"
 	shell:
 		"""
-			python src/principal.py --samplekey {wildcards.SAMPLE} --fastq {input.fastq} --fasta data/reference/NM_004119.2.fasta --snp data/reference/snp_FLT3.tab --experiment FLT3 --kmer_length 30 --results output/{wildcards.SAMPLE}.json --disable_cycle_breaking > {output} 2> {log}
+			python src/MICADo.py --samplekey {wildcards.SAMPLE} --fastq {input.fastq} --fasta data/reference/NM_004119.2.fasta --snp data/reference/snp_FLT3.tab --experiment FLT3 --kmer_length 30 --results output/{wildcards.SAMPLE}.json --disable_cycle_breaking > {output} 2> {log}
 		"""
 
 sam2test = open("data/FLT3_samples2analyse.txt",'r').readlines()

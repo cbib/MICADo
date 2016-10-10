@@ -15,7 +15,7 @@ python src/read_sampler/altered_reads_sampler.py --input_sam "data/alignments/C_
 ./bin/gmap_align_synthetic_reads.sh
 
 # run micado
-python src/principal.py --fastq ${SAMPLENAME}.fastq --experiment TP53 --fasta data/reference/reference_TP53.fasta --samplekey synth2 --snp data/reference/snp_TP53.tab --npermutations 20 --pvalue 0.1 --results "${SAMPLENAME}.significant_alterations.json"
+python src/MICADo.py --fastq ${SAMPLENAME}.fastq --experiment TP53 --fasta data/reference/reference_TP53.fasta --samplekey synth2 --snp data/reference/snp_TP53.tab --npermutations 20 --pvalue 0.1 --results "${SAMPLENAME}.significant_alterations.json"
 
 # merge known alterations and identified alterations
 bin/merge_json_objects.py ${SAMPLENAME}.alterations.json ${SAMPLENAME}.significant_alterations.json > ${SAMPLENAME}.combined.alterations.json
