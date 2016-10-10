@@ -76,12 +76,12 @@ Usually, results and log are displayed in the terminal.
 You can also write results and log in separate tsv/log files with:
 
 ```{bash}
-python src/MICADo.py 
-	--samplekey sample1  # Sample label for the results 
-	--fastq data/fastq/exp1/sample1.fastq  # Sample fastq file (with all the path)
-	--experiment exp1 # Experiment label corresponding to the folder name where are the whole fastq files of the cohort 
-	--fasta data/reference/reference.fasta  # Reference sequence in fasta format 
-	> sample1_results.tsv 2> sample1_log.log
+python src/MICADo.py \
+	--samplekey <sample_name> \
+	--fastq data/fastq/<experiment_name>/<sample_name.fastq> \
+	--experiment <experiment_name> \
+	--fasta data/reference/<reference.fasta> \
+	> <sample_name>.tsv 2> <sample_name>.log
 ```
 
 ### SNP output
