@@ -40,7 +40,12 @@ MICADo runs in a command line environment. The package contains one main script 
 * Fastq file of the sample of interest, targeted capture.
 * Fastq files of the samples of the cohort, generated using the same library preparation and the same sequencer.
 * Reference sequence of the targeted region (FASTA). This can be a multi-fasta file describing e.g. multiple isoforms. 
-* (Optionnal) A TSV file describing known SNPs and indels to ignore.
+* (Optionnal) A TSV file describing known SNPs.
+
+/!\ Reads in fastq files must be oriented in accord to the reference fasta file.
+You can do it with /bin/orient_reads_in_forward_direction.py or the cutadapt tool (http://cutadapt.readthedocs.io/en/stable/index.html) 
+
+/!\ Use http://www.snp-nexus.org/ to generate a refseq TXT file for SNPs and the /bin/make_SNP_file.py to construct the final TSV file.
 
 ## Minimal command line example 
 
@@ -59,14 +64,16 @@ python src/MICADo.py
 
 ```{bash}
 	--snp 						SNP file for reference sequence (file name, with all the path)
-	--kmer_length				Size of k-mer words (default=20)
 	--min_support_percentage 	Minimum of read support percentage for node filter (default=3.0)
 	--npermutations 			Number of permutations / random samples to perform (default=1000)
 	--max_len					Maximum allowed indel length (default=250)
 	--pvalue					p-value threshold for significance (default=0.001)
 	--results					Output results as JSON file (file name, with all the path)
+	--kmer_length				Size of k-mer words (default=20)
 	--disable_cycle_breaking	Do not search for k-mer values yielding a DAG
 ```
+
+Note that k-mer length increases automatically to obtain a DAG (stop at k >= 70). Use the --disable_cycle_breaking to allow cycle(s). In this case, this part of the graph is not analysed.
 
 ## Outputs
 
@@ -88,6 +95,8 @@ python src/MICADo.py \
 
 If you specified a SNP file, a TSV file will be created (and the direction /output/SNP/) with, for each SNP, the following informations: sample key, SNP ID, the number of reads supporting the reference nucleotide and the number of reads supporting SNP.
 
+/!\ Use http://www.snp-nexus.org/ to generate a refseq TXT file for known SNPs and the /bin/make_SNP_file.py to construct the final TSV file.
+
 ### Additional JSON file (optional)
 
 See http://www.json.org/ for complete description of json file format.
@@ -98,7 +107,8 @@ See http://www.json.org/ for complete description of json file format.
 
 # LICENSE
 
-    Copyright (c) 2015 Justine Rudewicz (1,2) (justinerudewicz@gmail.com) 
+    Copyright (c) 2015 
+    			Justine Rudewicz (1,2) (justinerudewicz@gmail.com) 
                 Hayssam Soueidan (1) (massyah@gmail.com)
                 Macha Nikolski (1,2) (macha@labri.fr)
     (1) CBiB - Universite Victor Segalen Bordeaux,
