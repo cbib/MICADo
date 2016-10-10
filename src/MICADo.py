@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding=utf8
 
-# python src/principal.py --samplekey 83_1 --fastq /Users/rudewicz/didac/DiDaC/data/fastq/all_pool_trimmed0.1/C_83_1.fastq,/Users/rudewicz/didac/DiDaC/data/fastq/all_pool_trimmed0.1/N_83_1.fastq --fasta /Users/rudewicz/didac/MICADo/data/reference/reference_TP53.fasta --snp /Users/rudewicz/didac/MICADo/data/reference/snp_TP53.tab  --kmer_length 20 --npermutations 100 --experiment TP53
 import json
 from Bio import pairwise2
 
@@ -25,8 +24,7 @@ logger.info("Import finished")
 
 
 def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_threshold, max_len, sample_key=None, fastq_files=None,
-				   fasta_file=None, snp_file=None, experiment_name=None,
-				   destination_directory=".", output_results=None, disable_cycle_breaking=False):
+				   fasta_file=None, snp_file=None, experiment_name=None, output_results=None, disable_cycle_breaking=False):
 	import seq_lib as seq_lib_module
 	seq_lib_module.library_itit(experiment_name)
 
@@ -44,8 +42,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 		logger.info("[Reference graph] Increasing k to %d to remove cycles", kmer_length+1)
 		return process_sample(kmer_length=kmer_length + 1, min_support_percentage=min_support_percentage, n_permutations=n_permutations,
 							p_value_threshold=p_value_threshold, max_len=max_len, sample_key=sample_key, fastq_files=fastq_files, 
-							fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name, 
-							destination_directory=destination_directory, output_results=output_results, 
+							fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name, output_results=output_results, 
 							disable_cycle_breaking=disable_cycle_breaking)
 
 	# g_patient construction
@@ -65,8 +62,7 @@ def process_sample(kmer_length, min_support_percentage, n_permutations, p_value_
 		logger.info("[Sample graph] Increasing k to %d to remove cycles", kmer_length+1)
 		return process_sample(kmer_length=kmer_length + 1, min_support_percentage=min_support_percentage, n_permutations=n_permutations, 
 							 p_value_threshold=p_value_threshold, max_len=max_len, sample_key=sample_key, fastq_files=",".join(fastq_files), 
-							 fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name,
-							 destination_directory=destination_directory, output_results=output_results)
+							 fasta_file=fasta_file, snp_file=snp_file, experiment_name=experiment_name, output_results=output_results)
 
 	# copy g_patient cleaned and remove reference edges on it (.dbg_refrm creation)
 	g_patient.graph_rmRefEdges_init(g_patient.dbgclean, g_reference.dbg)
@@ -157,22 +153,21 @@ if __name__ == "__main__":
 	global PROGRAMSTART
 	PROGRAMSTART = time.time()
 	parser = ArgumentParser()
+	parser.add_argument('--samplekey', help='Unique sample key', default="", type=str, required=True)
+	parser.add_argument('--fastq', help='FASTQ files to analyse (sep="," ; with all the path)', type=str, required=True)
+	parser.add_argument('--experiment', help='Experiment name, unique for one study (used for library construction)',
+						type=str, required=True)
+	parser.add_argument('--fasta', help='FASTA file of reference sequences (with all the path)', type=str, required=True)
 	parser.add_argument('--kmer_length', help='Size of k-mer words', default=20, type=int, required=False)
-	parser.add_argument('--fastq', help='FASTQ files to analyse (sep="," ; with all the path)', required=True, type=str)
-	parser.add_argument('--experiment', help='Experiment name, unique for one study (used for library construction)', required=True,
-						type=str)
-	parser.add_argument('--fasta', help='FASTA file of reference sequences (with all the path)', required=True, type=str)
-	parser.add_argument('--snp', help='SNP file for reference sequence (with all the path)', required=False, type=str)
+	parser.add_argument('--snp', help='SNP file for reference sequence (with all the path)', type=str, required=False)
 	parser.add_argument('--min_support_percentage', help='Minimum of read support percentage for node filter', default=3.0, type=float,
 						required=False)
-	parser.add_argument('--samplekey', help='Unique sample key', default="", type=str, required=True)
 	parser.add_argument('--npermutations', help="number of permutations / random samples to perform", default=1000, type=int,
 						required=False)
-	parser.add_argument("--destdir", help="Output directory", default="output/gml", type=str, required=False)
-	parser.add_argument("--max_len", help="Maximum allowed indel length", default=250, type=int)
-	parser.add_argument("--pvalue", help="P value threshold for significance", type=float, default=0.001)
-	parser.add_argument("--results", help="Output (as JSON) results file  ", type=str, default=None)
-	parser.add_argument("--disable_cycle_breaking", help="Do not search for k-mer values yielding a DAG", action="store_true")
+	parser.add_argument("--max_len", help="Maximum allowed indel length", default=250, type=int, required=False)
+	parser.add_argument("--pvalue", help="P value threshold for significance", type=float, default=0.001, , required=False)
+	parser.add_argument("--results", help="Output (as JSON) results file  ", type=str, default=None, required=False)
+	parser.add_argument("--disable_cycle_breaking", help="Do not search for k-mer values yielding a DAG", action="store_true", required=False)
 
 	args = parser.parse_args()
 
@@ -185,7 +180,6 @@ if __name__ == "__main__":
 		experiment_name=args.experiment,
 		n_permutations=args.npermutations,
 		sample_key=args.samplekey,
-		destination_directory=args.destdir,
 		p_value_threshold=args.pvalue,
 		output_results=args.results,
 		max_len=args.max_len,
