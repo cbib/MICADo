@@ -40,11 +40,11 @@ MICADo runs in a command line environment. The package contains one main script 
 * Fastq file of the sample of interest, targeted capture.
 * Fastq files of the samples of the cohort, generated using the same library preparation and the same sequencer.
 * Reference sequence of the targeted region (FASTA). This can be a multi-fasta file describing e.g. multiple isoforms. 
-* (Optionnal) A TSV file describing known SNPs and indels to ignore 
+* (Optionnal) A TSV file describing known SNPs and indels to ignore.
 
 ## Minimal command line example 
 
-/!\ Make sure to copy the whole cohort fastq files in the folder data/fastq/<\experiment_name>/
+/!\ Make sure to copy the whole cohort fastq files in the folder data/fastq/<experiment_name>/
 
 ```{bash}
 python src/MICADo.py 

@@ -165,7 +165,7 @@ if __name__ == "__main__":
 	parser.add_argument('--npermutations', help="number of permutations / random samples to perform", default=1000, type=int,
 						required=False)
 	parser.add_argument("--max_len", help="Maximum allowed indel length", default=250, type=int, required=False)
-	parser.add_argument("--pvalue", help="P value threshold for significance", type=float, default=0.001, , required=False)
+	parser.add_argument("--pvalue", help="P value threshold for significance", type=float, default=0.001, required=False)
 	parser.add_argument("--results", help="Output (as JSON) results file  ", type=str, default=None, required=False)
 	parser.add_argument("--disable_cycle_breaking", help="Do not search for k-mer values yielding a DAG", action="store_true", required=False)
 
