@@ -85,7 +85,7 @@ python /bin/make_SNP_file.py
 	refseq_22221.txt 			# Refseq file obtain from snp-nexus
 	snp_FLT3.tab  				# File name generated from make_SNP_file.py
 	NM_004119 					# Corresponding transcript
-	100							# Number of nucleotides before and after SNP
+	200							# Number of nucleotides before and after SNP
 ```
 
 See /data/reference/snp_FLT3.tab for the final format.
