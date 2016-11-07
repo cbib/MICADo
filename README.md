@@ -14,7 +14,9 @@ For any information or help running MICADo, you can get in touch with:
 
 # Installation
 
-MICADo was implemented in Python (python 2.7 ; http://www.python.org/) and tested under Linux and Mac OS environments. 
+MICADo installation requires an Unix environment with python 2.7, it is therefore Linux and MacOS compatible. You will need a compatibility layer (bash shell) for running Linux applications on Windows.
+
+MICADo was implemented in Python (python 2.7; http://www.python.org/) and tested under CentOS 6.6, Linux (Ubuntu 14.04 and 16.04) and Mac OS environments. 
 
 ## Obtaining MICADo
 
