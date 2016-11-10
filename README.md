@@ -112,7 +112,7 @@ python2.7 src/MICADo.py
 
 If you specified a SNP file, a TSV file will be created (and the direction /output/SNP/) with, for each SNP, the following informations: sample key, SNP ID, the number of reads supporting the reference nucleotide and the number of reads supporting SNP.
 
-### Additional JSON file (optional)
+### Detailed results JSON file (optional)
 
 See http://www.json.org/ for complete description of json file format.
 
