@@ -134,9 +134,6 @@ python2.7 src/MICADo.py
 
 In both C_256_1.log and C_256_1.json files, we can see that the only alteration with p-value < 0.001 and z-score > 10 is C > T at position 866 of NM_000546.5 which is the expected mutation for this sample.
 
-
-For a treshold we can found one mutation in 866C>T
-
 # Version history 
 
 * v.1.0, 2015-12-01, first release, version used in the accompanying paper
