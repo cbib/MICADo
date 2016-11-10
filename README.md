@@ -47,12 +47,12 @@ MICADo runs in a command line environment. The package contains one main script 
 /!\ Reads in fastq files must be oriented in accord to the reference fasta file.
 You can do it with /bin/orient_reads_in_forward_direction.py or with the cutadapt tool (http://cutadapt.readthedocs.io/en/stable/index.html).
 
-## Minimal command line example 
+## Minimal command line 
 
 /!\ Make sure to copy the whole cohort fastq files in the folder data/fastq/
 
 ```{bash}
-python src/MICADo.py
+python2.7 src/MICADo.py
 	--samplekey <sample_name>  									# Sample label for the results
 	--fastq data/fastq/<experiment_name>/<sample_name.fastq>  	# Sample fastq file (with all the path)
 	--experiment <experiment_name> 								# Experiment label corresponding to the folder name containing fastq files of the whole cohort 
@@ -82,7 +82,7 @@ Use http://www.snp-nexus.org/ to generate a refseq TXT file for known SNPs conta
 Then use /bin/make_SNP_file.py to construct the final TSV file (example for the NM_004119 transcript of FLT3 gene):
 
 ```{bash}
-python /bin/make_SNP_file.py 
+python2.7 /bin/make_SNP_file.py 
 	NM_004119.2.fasta 			# Corresponding fasta file
 	refseq_22221.txt 			# Refseq file obtain from snp-nexus
 	snp_FLT3.tab  				# File name generated from make_SNP_file.py
@@ -100,7 +100,7 @@ Usually, results and log are displayed in the terminal.
 You can also write results and log in separate tsv/log files with:
 
 ```{bash}
-python src/MICADo.py 
+python2.7 src/MICADo.py 
 	--samplekey <sample_name> 
 	--fastq data/fastq/<experiment_name>/<sample_name.fastq> 
 	--experiment <experiment_name> 
@@ -115,6 +115,27 @@ If you specified a SNP file, a TSV file will be created (and the direction /outp
 ### Additional JSON file (optional)
 
 See http://www.json.org/ for complete description of json file format.
+
+## Minimal example
+
+Example from the TP53 cohort (see associated paper).
+The pre-built library used for sampling is provided. 
+
+```{bash}
+python2.7 src/MICADo.py 
+    --samplekey C_256_1 
+    --fastq data/fastq/TP53_C/C_256_1.fastq  
+    --fasta data/reference/NM_000546.5.fasta 
+    --snp data/reference/snp_TP53.tab 
+    --experiment TP53_C 
+    --kmer_length 18 
+    --results C_256_1.json &> C_256_1.log
+```
+
+In both C_256_1.log and C_256_1.json files, we can see that the only alteration with p-value < 0.001 and z-score > 10 is C > T at position 866 of NM_000546.5 which is the expected mutation for this sample.
+
+
+For a treshold we can found one mutation in 866C>T
 
 # Version history 
 

@@ -130,6 +130,7 @@ def alteration_list_to_transcrit_mutation(g_test, reference_graph):
 
 		annotated_alterations.append(alteration_description)
 	annotated_alterations = merge_identical_alterations(annotated_alterations)
+	print "reference\talteration\tref_read_count\talt_read_count\tp_value\tz_score"
 	for alt in annotated_alterations:
 		print_alteration(alt)
 	return annotated_alterations
@@ -148,15 +149,15 @@ def print_alteration(alteration_description):
 	end = alteration_description['end']
 
 	if alt_type == "X":
-		print "%s:c.%d%s>%s\t%d\t%d\t%f\t%f" % (
+		print "%s\t%d%s>%s\t%d\t%d\t%f\t%f" % (
 			splicing_variant, start, reference_sequence, alt_sequence, ref_read_count,
 			alt_read_count, p_value, z_score)
 	elif alt_type == "D":
-		print "%s:c.%d_%ddel%s\t%d\t%d\t%f\t%f" % (
+		print "%s\t%d_%ddel%s\t%d\t%d\t%f\t%f" % (
 			splicing_variant, start, end, reference_sequence, ref_read_count,
 			alt_read_count, p_value, z_score)
 	elif alt_type == "I":
-		print "%s:c.%d_%dins%s\t%d\t%d\t%f\t%f" % (
+		print "%s\t%d_%dins%s\t%d\t%d\t%f\t%f" % (
 			splicing_variant, start, end, alt_sequence, ref_read_count,
 			alt_read_count, p_value, z_score)
 
